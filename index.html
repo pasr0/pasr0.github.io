@@ -4,9 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" type="text/css" href="styles.css" /> 
-    <script></script> 
     <title>Link CSS to HTML</title>
-    <style></style>
+    <script>  
+        
+        document.addEventListener('DOMContentLoaded', function(event) {
+    document.getElementById('drop').addEventListener('click', function(ev) {
+        div = document.createElement('div');
+        div.classList.add('gravity-affected-object');
+        image = document.createElement('img');
+        image.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/640px-Red_Apple.jpg';
+        image.width = 100;
+        image.classList.add('gravity-affected-object');
+        div.style.position = 'absolute';
+        div.style.left = '50%';
+        
+        div.appendChild(image);
+        
+        document.getElementById('page-top').appendChild(div);
+        setTimeout(function() {
+            div.style.marginTop = '1000px';
+        }, 100);
+    });
+});
+</script> 
+    
+    <style>
+        
+.gravity-affected-object {
+    transition: all 1s linear;
+    transition-timing-function: cubic-bezier(0.33333, 0, 0.66667, 0.33333);
+    z-index: -5000;
+}
+    </style>
 </head>
 <body>
     <h1>hello</h1>
