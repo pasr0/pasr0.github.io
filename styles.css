@@ -1,0 +1,5 @@
+.gravity-affected-object {
+    transition: all 1s linear;
+    transition-timing-function: cubic-bezier(0.33333, 0, 0.66667, 0.33333);
+    z-index: -5000;
+}
