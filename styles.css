@@ -1,3 +1,23 @@
+document.addEventListener('DOMContentLoaded', function(event) {
+    document.getElementById('drop').addEventListener('click', function(ev) {
+        div = document.createElement('div');
+        div.classList.add('gravity-affected-object');
+        image = document.createElement('img');
+        image.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/640px-Red_Apple.jpg';
+        image.width = 100;
+        image.classList.add('gravity-affected-object');
+        div.style.position = 'absolute';
+        div.style.left = '50%';
+        
+        div.appendChild(image);
+        
+        document.getElementById('page-top').appendChild(div);
+        setTimeout(function() {
+            div.style.marginTop = '1000px';
+        }, 100);
+    });
+});
+
 .gravity-affected-object {
     transition: all 1s linear;
     transition-timing-function: cubic-bezier(0.33333, 0, 0.66667, 0.33333);
