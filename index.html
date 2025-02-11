@@ -6,40 +6,56 @@
     <link rel="stylesheet" type="text/css" href="styles.css" /> 
     <title>Link CSS to HTML</title>
     <script>  
-        
-        document.addEventListener('DOMContentLoaded', function(event) {
-    document.getElementById('drop').addEventListener('click', function(ev) {
-        div = document.createElement('div');
-        div.classList.add('gravity-affected-object');
-        image = document.createElement('img');
-        image.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/640px-Red_Apple.jpg';
-        image.width = 100;
-        image.classList.add('gravity-affected-object');
-        div.style.position = 'absolute';
-        div.style.left = '50%';
-        
-        div.appendChild(image);
-        
-        document.getElementById('page-top').appendChild(div);
-        setTimeout(function() {
-            div.style.marginTop = '1000px';
-        }, 100);
-    });
-});
-</script> 
-    
-    <style>
-        
-.gravity-affected-object {
-    transition: all 1s linear;
-    transition-timing-function: cubic-bezier(0.33333, 0, 0.66667, 0.33333);
-    z-index: -5000;
-}
+      
     </style>
 </head>
 <body>
-    <h1>hello</h1>
-    <div id="page-top"></div>
-    <button id="drop">Drop</button>
+<a href="#" rel="home-page">Pasco Roma</a><span uses="drag"><a href="#" rel="home-page">ne</a></span><br><br>
+
+Je suis étudiante en graphisme et ce site me permet de répertorier mes travaux.
+
+&nbsp;<br>
+<br>
+Découvrez mon univers graphique&nbsp;<br>
+mes compétences&nbsp;et mes projets.<br><br>
+<br>
+
+
+
+<a href="#page-6" rel="history">Visuels musique “Winnie”</a>
+
+<br>
+<a href="#page-1" rel="history">Affiches Aragonites</a><br>
+
+<a href="#page-8" rel="history">Affiches hetres remarquable</a> 
+
+
+
+<br>
+
+
+<a rel="history" href="#page-2">Workshop jeu de société</a>
+
+<br>
+
+
+<a rel="history" href="#page-3">Workshop “Boîte à madeleines“</a>
+
+<br>
+
+
+<a rel="history" href="#page-4">Moonlit Brew</a><br>
+
+<a rel="history" href="#page-5">Charte graphique “grainouilette”</a><br>
+<a rel="history" href="#page-9">JPO ESAAT</a><br>
+<a rel="history" href="#page-10">UI/UX “Flanô”</a>
+<br>
+<a rel="history" href="#page-11"></a><br>
+<br>3d et autres<br><br>
+
+
+
+<a rel="history" href="#page-7">Photographies</a><br>
+<br><a target="_blank" rel="history" href="contact-form">Email</a><br><a target="_blank" href="https://www.instagram.com/cargoworld/">Instagram</a>
 </body>
 </html>
