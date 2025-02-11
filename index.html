@@ -3,64 +3,22 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" type="text/css" href="styles.css" /> 
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Inclure la bibliothèque p5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <!-- Lier le fichier script.js -->
+    <!--<script src="script.js" defer></script>-->
     <title>Romane Pasco - Graphisme</title>
 </head>
 <body>
-    <header>
-        <h1><a href="#" rel="home-page">Romane Pasco</a></h1>
-        <p>Je suis étudiante en graphisme, et ce site me permet de répertorier mes travaux.</p>
-        <p>Découvrez mon univers graphique, mes compétences et mes projets.</p>
-    </header>
-
-    <main>
-        <section>
-            <h2>Projets</h2>
-            <ul>
-                <li><a href="#page-6" rel="history">Visuels musique “Winnie”</a></li>
-                <li><a href="#page-1" rel="history">Affiches Aragonites</a></li>
-                <li><a href="#page-8" rel="history">Affiches Hêtres remarquables</a></li>
-                <li><a href="#page-2" rel="history">Workshop jeu de société</a></li>
-                <li><a href="#page-3" rel="history">Workshop “Boîte à madeleines”</a></li>
-                <li><a href="#page-4" rel="history">Moonlit Brew</a></li>
-                <li><a href="#page-5" rel="history">Charte graphique “Grainouillette”</a></li>
-                <li><a href="#page-9" rel="history">JPO ESAAT</a></li>
-                <li><a href="#page-10" rel="history">UI/UX “Flanô”</a></li>
-                <li><a href="#page-7" rel="history">Photographies</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2>À propos du projet “Visuels musique Winnie”</h2>
-            <p>
-                En tombant par hasard sur <i>“Bibs”</i>, une musique ambient dans mes recommandations, 
-j’ai été immédiatement captivée par son atmosphère. Ce morceau m’a inspirée à créer un visuel audio-réactif 
-en mettant en pratique mes récents apprentissages sur TouchDesigner.
-            </p>
-            <p>
-                Après avoir partagé un premier aperçu sur Instagram, j’ai eu la chance d’attirer l’attention de <i>Winnie</i>, 
-l’artiste, qui m’a proposé de collaborer pour réaliser des visuels pour ses compositions. 
-J’ai ainsi conçu deux vidéos mêlant TouchDesigner et After Effects, créant une symbiose entre musique et image.
-            </p>
-        </section>
-
-        <section>
-            <h2>Galerie</h2>
-            <gallery-slideshow transition-speed="0.8">
-                <media-item hash="W860551825957978135147203865180" slot="slot-0"></media-item>
-                <media-item hash="W860551825957978135147203865180" slot="slot-1"></media-item>
-                <media-item hash="W860551825957978135147203865180" slot="slot-2"></media-item>
-                <media-item hash="W860551825957978135147203865180" slot="slot-3"></media-item>
-            </gallery-slideshow>
-        </section>
-    </main>
-
-    <footer>
-        <p>Retrouvez-moi :</p>
-        <ul>
-            <li><a href="contact-form" target="_blank" rel="noopener noreferrer">Email</a></li>
-            <li><a href="https://www.instagram.com/cargoworld/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
-        </ul>
-    </footer>
+    <div id="p5-container"></div>
+    <div class="content">
+        <div class="title">Pasco Romane</div>
+        <div class="menu">
+            <div>Projets</div>
+            <div>Galerie</div>
+            <div>Contacts</div>
+        </div>
+    </div>
 </body>
 </html>
