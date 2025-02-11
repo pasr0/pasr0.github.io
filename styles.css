@@ -1,6 +1,6 @@
 @font-face {
     font-family: 'ABCDiatypeVariable';  /* Nom de ta police */
-    src: url('fonts/ABCDiatypeVariable-Trial.woff2') format('woff2');  /* Chemin vers ton fichier .woff2 */
+    src: url('ABCDiatypeVariable-Trial.woff2') format('woff2');  /* Chemin vers ton fichier .woff2 */
     font-weight: normal;  /* Poids normal de la police */
     font-style: normal;   /* Style normal */
 }
