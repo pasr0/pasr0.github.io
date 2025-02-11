@@ -5,30 +5,93 @@
     font-style: normal;   /* Style normal */
 }
 
+
 body {
-    font-family: 'ABCDiatypeVariable', sans-serif;  /* Applique la police à tout le texte du site */
+  font-family: 'ABCDiatypeVariable', sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f8f8f8;
+  height: 100vh;  /* Utilisation de la hauteur complète de l'écran */
 }
 
-
-[id="G4120952749"] .page-layout {
-	max-width: 25%;
+/* Conteneur du canvas */
+#p5-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;  /* Canvas en arrière-plan */
 }
 
-[id="G4120952749"].page {
-	justify-content: flex-start;
-	min-height: var(--viewport-height);
+/* Contenu principal */
+.content {
+  text-align: center;
+  max-width: 1200px;  /* Limiter la largeur pour plus de contrôle */
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-[id="G4120952749"] .backdrop {
+/* Titre */
+.title {
+  font-size: 2rem; /* Taille de police adaptable */
+  font-weight: bold;
+  margin-bottom: 20px;
 }
 
-.mobile [id="G4120952749"] .backdrop {
+/* Menu */
+.menu {
+  display: flex;
+  justify-content: center;  /* Centrage horizontal */
+  align-items: center;  /* Centrage vertical */
+  gap: 30px;  /* Espacement entre les éléments */
+  margin-top: 20px;
 }
 
-.mobile [id="G4120952749"] .page-layout {
+/* Style des éléments du menu */
+.menu div {
+  cursor: pointer;
+  font-size: 1.2rem;  /* Police adaptable */
+  transition: transform 0.3s ease;  /* Effet au survol */
 }
 
-[id="G4120952749"] .page-content {
-	align-items: flex-start;
-	width: 100%;
+.menu div:hover {
+  transform: scale(1.1);  /* Agrandissement au survol */
 }
+
+/* Responsive : ajuster le menu sur petit écran */
+@media (max-width: 768px) {
+  .menu {
+    flex-direction: column;  /* Menu vertical */
+    gap: 20px;  /* Réduire l'espacement */
+  }
+
+  .title {
+    font-size: 1.5rem;  /* Réduire la taille du titre */
+  }
+
+  .menu div {
+    font-size: 1rem;  /* Réduire la taille de la police du menu */
+  }
+}
+
+/* Responsive : ajustements pour très petits écrans */
+@media (max-width: 480px) {
+  .menu {
+    gap: 10px;  /* Espacement encore plus réduit */
+  }
+
+  .title {
+    font-size: 1.2rem;  /* Taille plus petite du titre */
+  }
+
+  .menu div {
+    font-size: 0.9rem;  /* Taille réduite du menu */
+  }
+}
+
