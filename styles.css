@@ -1,3 +1,15 @@
+@font-face {
+    font-family: 'ABCDiatypeVariable';  /* Nom de ta police */
+    src: url('fonts/ABCDiatypeVariable-Trial.woff2') format('woff2');  /* Chemin vers ton fichier .woff2 */
+    font-weight: normal;  /* Poids normal de la police */
+    font-style: normal;   /* Style normal */
+}
+
+body {
+    font-family: 'ABCDiatypeVariable', sans-serif;  /* Applique la police à tout le texte du site */
+}
+
+
 [id="G4120952749"] .page-layout {
 	max-width: 25%;
 }
