@@ -1,61 +1,68 @@
-@font-face {
-    font-family: 'ABCDiatypeVariable';  /* Nom de ta police */
-    src: url('ABCDiatypeVariable-Trial.woff2') format('woff2');  /* Chemin vers ton fichier .woff2 */
-    font-weight: normal;  /* Poids normal de la police */
-    font-style: normal;   /* Style normal */
-}
 
 body {
-  font-family: 'ABCDiatypeVariable', sans-serif;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  background-color: #f8f8f8;
-  height: 100vh;  /* Utilisation de la hauteur complète de l'écran */
+  height: 100vh;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  overflow: hidden; /* Empêche le défilement pendant l'animation */
 }
-
-/* Titre */
-.title {
-  font-size: 2rem; /* Taille de police adaptable */
-  font-weight: bold;
-  margin-bottom: 5%; /* Espacement en pourcentage de la hauteur de la page */
+h1 {
+  margin-top: 50px;
+  font-size: 4em;
+  font-weight: 700;
+  letter-spacing: -2.7px;
+  color: black;
+  position: relative;
+  top: -100vh; /* Positionnement initial pour l'animation */
+  transition: top 1s ease-in-out, font-size 0.5s ease, transform 0.5s ease; /* Durée et type d'animation */
 }
-
-/* Menu */
-.menu {
-  display: flex;
-  justify-content: center; /* Centrage horizontal */
-  align-items: center; /* Centrage vertical */
-  gap: 30px; /* Espacement entre les éléments */
-  margin-top: 5%; /* Espacement dynamique basé sur la hauteur de la fenêtre */
-}
-
-/* Responsive : ajuster l'espacement sur petit écran */
 @media (max-width: 768px) {
-  .title {
-    font-size: 1.5rem; /* Réduire la taille du titre */
-    margin-bottom: 4%; /* Moins d'espace entre le titre et le menu */
-  }
-
-  .menu {
-    gap: 20px; /* Réduire l'espacement entre les éléments */
-    margin-top: 4%; /* Réduire l'espacement entre le titre et le menu */
+  h1 {
+      font-size: 3em; /* Réduire la taille de la police */
+      text-align: center; /* Centrer le texte */
   }
 }
-
-/* Responsive : ajustements pour très petits écrans */
-@media (max-width: 480px) {
-  .title {
-    font-size: 1.2rem; /* Taille plus petite du titre */
-    margin-bottom: 3%; /* Réduire l'espacement encore plus sur très petit écran */
+@keyframes fadeInDown {
+  from {
+      top: -100vh;
   }
-
-  .menu {
-    gap: 10px; /* Espacement plus réduit */
-    margin-top: 3%; /* Réduire l'espacement pour les petits écrans */
+  to {
+      top: 50px;
   }
 }
-
+nav {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  position: absolute;
+  bottom: 50px;
+}
+nav a {
+  text-decoration: none;
+  color: black;
+  font-size: 1.2em;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  display: inline-block;
+}
+nav a:hover {
+  font-weight: 600;
+}
+nav a:hover span {
+  display: inline-block;
+  transition: font-weight 0.1s linear;
+}
+nav a:hover span:nth-child(1) {
+  transition-delay: 0s;
+}
+nav a:hover span:nth-child(2) {
+  transition-delay: 0.1s;
+}
+nav a:hover span:nth-child(3) {
+  transition-delay: 0.2s;
+}
+/* Ajoutez plus de nth-child si nécessaire
