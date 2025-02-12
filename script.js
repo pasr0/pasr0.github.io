@@ -90,3 +90,4 @@ window.onload = applyStoredColors;
 
 // Ajouter un événement au bouton pour changer les couleurs lors du clic
 document.getElementById('colorButton').addEventListener('click', changeColors);
+
