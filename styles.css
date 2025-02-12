@@ -4,7 +4,25 @@ body {
   align-items: center;
   font-family: Arial, sans-serif;
   overflow: hidden; /* Empêche le défilement pendant l'animation */
+  overflow-x: hidden;
   cursor: crosshair;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: inherit;
+  text-decoration: none;
+  font-size: 1.2em;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  display: inline-block;
+  bottom: 0;
 }
 
 h1 {
@@ -12,16 +30,15 @@ h1 {
   font-size: 5em;
   font-weight: 700;
   letter-spacing: -2.7px;
-  color: black;
   position: relative;
-  mix-blend-mode: difference;
   top: -100vh; /* Positionnement initial pour l'animation */
   transition: top 1s ease-in-out, font-size 0.5s ease, transform 0.5s ease; /* Durée et type d'animation */
 }
 
 .clickable {
   text-decoration: none;
-  color: black;
+  color: rgb(255, 255, 255);
+  transition: color 0.3s ease;
   cursor: crosshair; /* Curseur en forme de croix */
 }
 
@@ -58,7 +75,6 @@ ul {
   font-size: 0.6em;
   line-height: 1.1;
   font-weight: 500;
-  color: black;
 }
 
 .contact-section {
@@ -89,8 +105,6 @@ ul {
     letter-spacing: -2px;
     text-align: center; /* Centrer le texte */
     position: fixed;
-    color: rgb(0, 0, 0);
-    mix-blend-mode: difference;
   }
 
   .container {
@@ -112,7 +126,6 @@ ul {
     display: sticky;
     justify-content: space-around;
     position: fixed;
-    mix-blend-mode: difference;
   }
 
   .image-section {
@@ -136,16 +149,14 @@ nav {
 
 nav a {
   text-decoration: none;
-  color: rgb(155, 155, 155);
   font-size: 1.2em;
   font-weight: 500;
   letter-spacing: -0.4px;
   display: inline-block;
-  mix-blend-mode: difference;
   bottom: 0;
 
 }
 
 nav a:hover {
-  font-weight: 600;
+  opacity: 0.6;
 }
