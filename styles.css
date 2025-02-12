@@ -160,3 +160,24 @@ nav a {
 nav a:hover {
   opacity: 0.6;
 }
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* S'adapte dynamiquement */
+  grid-auto-rows: 1fr; /* Assure un remplissage vertical */
+  height: 100vh; /* Prend toute la hauteur de l'écran */
+  width: 100vw; /* Prend toute la largeur */
+}
+
+.grid img,
+.grid video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Remplit sans déformation */
+}
