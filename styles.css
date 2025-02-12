@@ -1,68 +1,162 @@
+.about-section {
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    align-items: center;
+    font-family: ABC Diatype Variable Unlicensed Trial, -apple-system, Roboto, Helvetica, sans-serif;
+    color: #000;
+    font-weight: 500;
+    padding: 61px 80px;
+  }
+  @media (max-width: 991px) {
+    .about-section {
+      padding: 0 20px;
+    }
+  }
+  .designer-name {
+    font-size: 128px;
+    font-weight: 700;
+    letter-spacing: -3.84px;
+    align-self: start;
+  }
+  @media (max-width: 991px) {
+    .designer-name {
+      max-width: 100%;
+      font-size: 40px;
+    }
+  }
+  .content-wrapper {
+    display: flex;
+    margin-top: 76px;
+    align-items: center;
+    gap: 40px 99px;
+    font-size: 15px;
+    letter-spacing: -0.15px;
+    justify-content: start;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 991px) {
+    .content-wrapper {
+      max-width: 100%;
+      margin-top: 40px;
+    }
+  }
+  .text-content {
+    align-self: stretch;
+    display: flex;
+    min-width: 240px;
+    flex-direction: column;
+    justify-content: start;
+    width: 684px;
+    margin: auto 0;
+  }
+  @media (max-width: 991px) {
+    .text-content {
+      max-width: 100%;
+    }
+  }
+  .bio-text {
+    width: 100%;
+    gap: 40px 53px;
+  }
+  @media (max-width: 991px) {
+    .bio-text {
+      max-width: 100%;
+    }
+  }
+  .contact-info {
+    align-self: start;
+    display: flex;
+    margin-top: 45px;
+    align-items: start;
+    gap: 40px 53px;
+    white-space: nowrap;
+    justify-content: start;
+  }
+  @media (max-width: 991px) {
+    .contact-info {
+      margin-top: 40px;
+      white-space: initial;
+    }
+  }
+  .contact-label {
+    text-align: right;
+  }
+  .contact-details {
+    width: 71px;
+  }
+  .profile-image {
+    aspect-ratio: 1.32;
+    object-fit: contain;
+    object-position: center;
+    width: 794px;
+    align-self: stretch;
+    min-width: 240px;
+    margin: auto 0;
+  }
+  @media (max-width: 991px) {
+    .profile-image {
+      max-width: 100%;
+    }
+  }
 
-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  font-family: Arial, sans-serif;
-  overflow: hidden; /* Empêche le défilement pendant l'animation */
-}
-h1 {
-  margin-top: 50px;
-  font-size: 4em;
-  font-weight: 700;
-  letter-spacing: -2.7px;
-  color: black;
-  position: relative;
-  top: -100vh; /* Positionnement initial pour l'animation */
-  transition: top 1s ease-in-out, font-size 0.5s ease, transform 0.5s ease; /* Durée et type d'animation */
-}
-@media (max-width: 768px) {
-  h1 {
-      font-size: 3em; /* Réduire la taille de la police */
-      text-align: center; /* Centrer le texte */
-  }
-}
-@keyframes fadeInDown {
-  from {
-      top: -100vh;
-  }
-  to {
-      top: 50px;
-  }
-}
-nav {
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  position: absolute;
-  bottom: 50px;
-}
-nav a {
-  text-decoration: none;
-  color: black;
-  font-size: 1.2em;
-  font-style: normal;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  display: inline-block;
-}
-nav a:hover {
-  font-weight: 600;
-}
-nav a:hover span {
-  display: inline-block;
-  transition: font-weight 0.1s linear;
-}
-nav a:hover span:nth-child(1) {
-  transition-delay: 0s;
-}
-nav a:hover span:nth-child(2) {
-  transition-delay: 0.1s;
-}
-nav a:hover span:nth-child(3) {
-  transition-delay: 0.2s;
-}
-/* Ajoutez plus de nth-child si nécessaire
+    h1 {
+        margin-top: 50px;
+        font-size: 4em;
+        font-weight: 700;
+        letter-spacing: -2.7px;
+        color: black;
+        position: relative;
+        top: -100vh; /* Positionnement initial pour l'animation */
+        transition: top 1s ease-in-out, font-size 0.5s ease, transform 0.5s ease; /* Durée et type d'animation */
+        }
+
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 4em; /* Réduire la taille de la police */
+            text-align: center; /* Centrer le texte */
+            }
+        }
+    @keyframes fadeInDown {
+        from {
+             top: -100vh;
+         }
+        to {
+            top: 50px;
+     }
+    }
+
+    nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    bottom: 50px;
+    position: fixed;
+    }
+
+    nav a {
+    text-decoration: none;
+    color: black;
+    font-size: 1.2em;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    display: inline-block;
+    }
+
+    nav a:hover {
+    font-weight: 600;
+    }
+
+    .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    }
