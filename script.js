@@ -55,7 +55,7 @@ function changeColors() {
 
   // Modifier la couleur du bouton
   const button = document.getElementById('colorButton');
-  button.style.backgroundColor = randomPalette.background;
+
   button.style.color = randomPalette.text;
 
   // Sauvegarder les couleurs dans le localStorage pour qu'elles persistent sur toutes les pages
