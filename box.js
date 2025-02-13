@@ -6,6 +6,9 @@ let dragging = false; // Détection si on fait du drag
 let cubeFillColor, cubeStrokeColor; // Couleurs du cube
 let prevMouseX, prevMouseY; // Pour suivre la position précédente de la souris
 let cubeSize;
+let velocityY = 0; // Vitesse verticale du cube
+let gravity = 0.3; // Gravité simulée
+let bounceFactor = 0.8; // Facteur de rebond
 
 // Fonction pour récupérer la couleur de fond et la couleur de texte du body
 function getColors() {
@@ -22,8 +25,9 @@ function setup() {
     cubeFillColor = colors.background; // Initialiser la couleur de remplissage avec la couleur de fond actuelle
     cubeStrokeColor = colors.text; // Initialiser la couleur du contour avec la couleur du texte actuelle
     cubeSize = min(width, height) * 0.2; 
+    offsetX = 0; // Centrer le cube horizontalement au départ
+    offsetY = -height * 0.5; // Position initiale en haut de la page
 }
-
 
 function draw() {
     background(cubeFillColor)
@@ -32,11 +36,6 @@ function draw() {
 
     // Positionnement du cube légèrement au-dessus du centre
     translate(0, -height * 0.1, 0);
-  
-
-    // Rotation automatique
-    angleX += 0.01; // Rotation continue sur l'axe X
-    angleY += 0.01; // Rotation continue sur l'axe Y
 
     // Récupérer les couleurs de fond et de texte dynamiques
     const colors = getColors();
@@ -50,6 +49,10 @@ function draw() {
 
     // Appliquer les déplacements du cube
     translate(offsetX, offsetY, 0);
+
+    // Rotation automatique
+    angleX += 0.01; // Rotation continue sur l'axe X
+    angleY += 0.01; // Rotation continue sur l'axe Y
 
     // Rotation basée sur la souris
     let deltaX = mouseX - prevMouseX; // Calcul du mouvement horizontal de la souris
@@ -65,7 +68,21 @@ function draw() {
     // Dessiner un cube avec un remplissage et un contour
     box(cubeSize);
 
+    // Mise à jour de la position du cube pour simuler la gravité
+    velocityY += gravity; // Appliquer la gravité
+    offsetY += velocityY; // Mettre à jour la position Y du cube
 
+    // Si le cube atteint le bas de la fenêtre, il rebondit
+    if (offsetY + cubeSize / 2 >= height / 2) {
+        offsetY = height / 2 - cubeSize / 2; // Ajuster la position pour éviter qu'il dépasse
+        velocityY *= -bounceFactor; // Inverser la direction de la vitesse et appliquer le facteur de rebond
+    }
+
+    // Si le cube atteint le haut de la fenêtre, il rebondit également
+    if (offsetY - cubeSize / 2 <= -height / 2) {
+        offsetY = -height / 2 + cubeSize / 2;
+        velocityY *= -bounceFactor;
+    }
 
     // Mettre à jour la position précédente de la souris pour le prochain frame
     prevMouseX = mouseX;
@@ -93,4 +110,4 @@ function mouseReleased() {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     cubeSize = min(width, height) * 0.2;
-  }
+}
