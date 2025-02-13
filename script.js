@@ -58,11 +58,17 @@ function changeColors() {
 
   button.style.color = randomPalette.text;
 
+  const scoreBox = document.getElementById('scoreBox');
+  scoreBox.style.backgroundColor = randomPalette.text;  // Inverser le fond et le texte
+  scoreBox.style.color = randomPalette.background;      
+
+
   // Sauvegarder les couleurs dans le localStorage pour qu'elles persistent sur toutes les pages
   localStorage.setItem('backgroundColor', randomPalette.background);
   localStorage.setItem('textColor', randomPalette.text);
 }
 
+// Fonction pour appliquer les couleurs sauvegardées au chargement de la page
 // Fonction pour appliquer les couleurs sauvegardées au chargement de la page
 function applyStoredColors() {
   const storedBackgroundColor = localStorage.getItem('backgroundColor');
@@ -81,8 +87,12 @@ function applyStoredColors() {
 
       // Appliquer les couleurs au bouton
       const button = document.getElementById('colorButton');
-  
       button.style.color = storedTextColor;
+
+      // Appliquer les couleurs à la scoreBox
+      const scoreBox = document.getElementById('scoreBox');
+      scoreBox.style.backgroundColor = storedTextColor;  // Inverser fond et texte
+      scoreBox.style.color = storedBackgroundColor;      // Inverser fond et texte
   }
 }
 
