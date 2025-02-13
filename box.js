@@ -5,6 +5,7 @@ let offsetY = 0; // Décalage pour le déplacement du cube
 let dragging = false; // Détection si on fait du drag
 let cubeFillColor, cubeStrokeColor; // Couleurs du cube
 let prevMouseX, prevMouseY; // Pour suivre la position précédente de la souris
+let cubeSize;
 
 // Fonction pour récupérer la couleur de fond et la couleur de texte du body
 function getColors() {
@@ -20,10 +21,17 @@ function setup() {
     const colors = getColors();
     cubeFillColor = colors.background; // Initialiser la couleur de remplissage avec la couleur de fond actuelle
     cubeStrokeColor = colors.text; // Initialiser la couleur du contour avec la couleur du texte actuelle
+    cubeSize = min(width, height) * 0.2; 
 }
+
 
 function draw() {
     background(cubeFillColor)
+
+    ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
+
+    // Positionnement du cube légèrement au-dessus du centre
+    translate(0, -height * 0.1, 0);
   
 
     // Rotation automatique
@@ -55,7 +63,7 @@ function draw() {
     rotateY(angleY);
 
     // Dessiner un cube avec un remplissage et un contour
-    box(100);
+    box(cubeSize);
 
 
 
@@ -81,3 +89,8 @@ function mouseDragged() {
 function mouseReleased() {
     dragging = false;
 }
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+    cubeSize = min(width, height) * 0.2;
+  }
