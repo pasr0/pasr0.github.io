@@ -6,67 +6,31 @@
     <title>Romane Pasco - Portfolio</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
-
-    <!-- Inclusion de Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-pzjw8f+ua7Kw1TIq0X0Z9d2miqKm26zOm1t5p6aA4A0wYKTz5IcPT+fxdD+TbPYi" crossorigin="anonymous">
 </head>
 <body>
-    <style>  
-        body {overflow: auto; overflow-x: hidden;}
-    </style>
+    <style>  body {overflow: auto;  overflow-x: hidden ;}</style>
     <canvas id="grain-overlay"></canvas>
     
     <h1>ROMANE PASCO</h1>
-
-    <!-- Grille des images -->
-    <div class="container py-5">
-        <div class="row g-3">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/BAHANCEFAYT/3.png?raw=true" class="img-fluid clickable" data-name="Workshop Fayot">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/A4%20-%209.jpg?raw=true" class="img-fluid clickable" data-name="Affiches aragonites">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/main/MAIN%20DOC/App%20Icon%20Mockup%201.png?raw=true" class="img-fluid clickable" data-name="UI/UX App Flanô">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/JPO_Hello.gif?raw=true" autoplay loop muted class="img-fluid clickable" data-name="Cavalary JPO">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/Slide%2016_9%20-%201.png?raw=true" class="img-fluid clickable" data-name="Workshop Risographie">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/Bibs_Winnie.gif?raw=true" class="img-fluid clickable" data-name="Winnie Musik">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/IMG_9442-2.jpg?raw=true" class="img-fluid clickable" data-name="Collection Photo">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/grainouilette/Seeddating%20(11)%201.png?raw=true" class="img-fluid clickable" data-name="Charte graphique">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/JPO_Simulation.gif?raw=true" autoplay loop muted class="img-fluid clickable" data-name="Cavalary JPO">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/Logo_vhs.gif?raw=true" class="img-fluid clickable" data-name="VHS simulation">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/Instagram%20post%20-%206.png?raw=true" class="img-fluid clickable" data-name="BDE Noël">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/ezgif-63d216ba5a1325.gif?raw=true" class="img-fluid clickable" data-name="Ticket motion">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/BONHOMME.png?raw=true" class="img-fluid clickable" data-name="3d Klub Blender">
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <img src="https://github.com/pasr0/media/blob/main/eier%20satan%20frontMOCK.png?raw=true" class="img-fluid clickable" data-name="Tool t-shirt">
-            </div>
-        </div>
+    <div class="grid">
+        <img src="https://github.com/pasr0/media/blob/main/BAHANCEFAYT/3.png?raw=true" class="clickable" data-name="Workshop Fayot">
+        <img src="https://github.com/pasr0/media/blob/main/A4%20-%209.jpg?raw=true" class="clickable" data-name="Affiches aragonites">
+        <img src="https://github.com/pasr0/media/blob/main/main/MAIN%20DOC/App%20Icon%20Mockup%201.png?raw=true" class="clickable" data-name="UI/UX App Flanô">
+        <img src="https://github.com/pasr0/media/blob/main/JPO_Hello.gif?raw=true" autoplay loop muted class="clickable" data-name="Cavalary JPO">
+        <img src="https://github.com/pasr0/media/blob/main/Slide%2016_9%20-%201.png?raw=true" class="clickable" data-name="Workshop Risographie">
+        <img src="https://github.com/pasr0/media/blob/main/Bibs_Winnie.gif?raw=true" class="clickable" data-name="Winnie Musik">
+        <img src="https://github.com/pasr0/media/blob/main/IMG_9442-2.jpg?raw=true" class="clickable" data-name="Collection Photo">
+        <img src="https://github.com/pasr0/media/blob/main/grainouilette/Seeddating%20(11)%201.png?raw=true" class="clickable" data-name="Charte graphique">
+        <img src="https://github.com/pasr0/media/blob/main/JPO_Simulation.gif?raw=true" autoplay loop muted class="clickable" data-name="Cavalary JPO">
+        <img src="https://github.com/pasr0/media/blob/main/Logo_vhs.gif?raw=true" class="clickable" data-name="VHS simulation">
+        <img src="https://github.com/pasr0/media/blob/main/Instagram%20post%20-%206.png?raw=true" class="clickable" data-name="BDE Noël">
+        <img src="https://github.com/pasr0/media/blob/main/ezgif-63d216ba5a1325.gif?raw=true" class="clickable" data-name="Ticket motion">
+        <img src="https://github.com/pasr0/media/blob/main/BONHOMME.png?raw=true" class="clickable" data-name="3d Klub Blender">
+        <img src="https://github.com/pasr0/media/blob/main/eier%20satan%20frontMOCK.png?raw=true" class="clickable" data-name="Tool t-shirt">
+        
+    
     </div>
 
-    <!-- Navigation -->
     <nav>
         <a href="index.html" class="clickable" data-name="Home" id="home-link">Home</a>
         <a href="Galerie.html" class="clickable" data-name="Galerie" id="galerie-link">Galerie</a>
@@ -75,9 +39,6 @@
     </nav>
     <div id="tooltip" class="tooltip"></div>
     
-    <!-- Inclusion de Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
     <script>
         // Liste des palettes définies
         const palettes = [
@@ -98,9 +59,12 @@
         // Fonction pour changer les couleurs
         function changeColors() {
             const randomPalette = palettes[Math.floor(Math.random() * palettes.length)];
+
+            // Appliquer les couleurs au body
             document.body.style.backgroundColor = randomPalette.background;
             document.body.style.color = randomPalette.text;
 
+            // Appliquer aux liens et au bouton
             const links = document.querySelectorAll('a');
             links.forEach(link => {
                 link.style.color = randomPalette.text;
@@ -109,6 +73,7 @@
             const button = document.getElementById('colorButton');
             button.style.color = randomPalette.text;
 
+            // Sauvegarder les couleurs dans le localStorage
             localStorage.setItem('backgroundColor', randomPalette.background);
             localStorage.setItem('textColor', randomPalette.text);
         }
@@ -135,10 +100,72 @@
         // Appliquer les couleurs stockées à l'ouverture de la page
         window.addEventListener('load', function() {
             applyStoredColors();  // Charger les couleurs stockées
+            // Initialiser la position de l'élément <h1>
+            document.querySelector('h1').style.top = '20px';
         });
 
+        // Ajouter un événement au bouton pour changer les couleurs
         document.getElementById('colorButton').addEventListener('click', changeColors);
-    </script>
 
+        // Gestion des tooltips
+        const elements = document.querySelectorAll('.clickable');
+        const tooltip = document.getElementById('tooltip');
+
+        elements.forEach(element => {
+            element.addEventListener('mouseenter', function() {
+                const name = this.getAttribute('data-name');
+                tooltip.textContent = name;
+                tooltip.style.display = 'block';
+            });
+
+            element.addEventListener('mousemove', function(event) {
+                tooltip.style.left = event.pageX + 10 + 'px';
+                tooltip.style.top = event.pageY + 10 + 'px';
+            });
+
+            element.addEventListener('mouseleave', function() {
+                tooltip.style.display = 'none';
+            });
+        });
+        // Ajout du grain sur le canvas
+window.addEventListener('load', function() {
+    const canvas = document.getElementById("grain-overlay");
+    const ctx = canvas.getContext("2d");
+
+    // Ajuster la taille du canvas à la taille de la fenêtre
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Fonction pour dessiner le bruit/grain
+    function drawNoise() {
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
+        const pixels = imageData.data;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+            const intensity = Math.random() * 100;
+            pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity; // Gris
+            pixels[i + 3] = 50; // Opacité du grain (0-255)
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Fonction pour animer le bruit/grain
+    function animateNoise() {
+        drawNoise();
+        requestAnimationFrame(animateNoise);
+    }
+
+    animateNoise();
+
+    // Ajuster la taille du canvas si la fenêtre est redimensionnée
+    window.addEventListener("resize", function() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+});
+
+
+    </script>
 </body>
 </html>
