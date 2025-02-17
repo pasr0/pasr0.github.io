@@ -177,8 +177,9 @@ ul {
     font-size: 1em;
   }
 
+  /* Force the grid to single column */
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important; /* Force a single column */
     grid-auto-rows: auto;
     gap: 10px;
   }
