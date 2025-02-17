@@ -119,3 +119,12 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     cubeSize = min(width, height) * 0.2;
 }
+
+function touchStarted(event) {
+    if (event.target.tagName !== 'CANVAS') return true; // Laisse passer les touches hors du canvas
+    dragging = true;
+    touchStartX = touches[0].x;
+    touchStartY = touches[0].y;
+    return false;
+}
+
