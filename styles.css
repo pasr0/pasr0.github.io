@@ -177,6 +177,7 @@ nav a:hover {
   gap: 0px; /* Espacement entre les éléments */
   width: 100%;
   max-width: 1100px;
+  margin: 0px;
 }
 
 .grid img,
