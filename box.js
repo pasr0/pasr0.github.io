@@ -127,4 +127,4 @@ function touchStarted(event) {
     touchStartY = touches[0].y;
     return false;
 }
-
+*/
