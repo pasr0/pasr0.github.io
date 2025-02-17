@@ -1,16 +1,16 @@
-let angleX = 0; // Rotation initiale sur l'axe X
-let angleY = 0; // Rotation initiale sur l'axe Y
-let offsetX = 0; // Décalage pour le déplacement du cube
-let offsetY = 0; // Décalage pour le déplacement du cube
-let dragging = false; // Détection si on fait du drag
-let cubeFillColor, cubeStrokeColor; // Couleurs du cube
-let prevMouseX, prevMouseY; // Pour suivre la position précédente de la souris
+let angleX = 0;
+let angleY = 0;
+let offsetX = 0;
+let offsetY = 0;
+let dragging = false;
+let cubeFillColor, cubeStrokeColor;
+let prevMouseX, prevMouseY;
 let cubeSize;
-let velocityY = 0; // Vitesse verticale du cube
-let gravity = 0.3; // Gravité simulée
-let bounceFactor = 0.8; // Facteur de rebond
+let velocityY = 0;
+let gravity = 0.3;
+let bounceFactor = 0.8;
+let touchStartX, touchStartY; // Position de départ du toucher
 
-// Fonction pour récupérer la couleur de fond et la couleur de texte du body
 function getColors() {
     const backgroundColor = window.getComputedStyle(document.body).backgroundColor;
     const textColor = window.getComputedStyle(document.body).color;
@@ -22,89 +22,97 @@ function setup() {
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     const colors = getColors();
-    cubeFillColor = colors.background; // Initialiser la couleur de remplissage avec la couleur de fond actuelle
-    cubeStrokeColor = colors.text; // Initialiser la couleur du contour avec la couleur du texte actuelle
+    cubeFillColor = colors.background;
+    cubeStrokeColor = colors.text;
     cubeSize = min(width, height) * 0.2; 
-    offsetX = 0; // Centrer le cube horizontalement au départ
-    offsetY = -height * 0.5; // Position initiale en haut de la page
+    offsetX = 0;
+    offsetY = -height * 0.5;
 }
 
 function draw() {
-    background(cubeFillColor)
-
+    background(cubeFillColor);
     ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
-
-    // Positionnement du cube légèrement au-dessus du centre
     translate(0, -height * 0.1, 0);
 
-    // Récupérer les couleurs de fond et de texte dynamiques
     const colors = getColors();
     cubeFillColor = colors.background;
     cubeStrokeColor = colors.text;
 
-    // Appliquer la couleur de remplissage (fill) et contour (stroke)
     fill(cubeFillColor);
     stroke(cubeStrokeColor);
     strokeWeight(2);
 
-    // Appliquer les déplacements du cube
     translate(offsetX, offsetY, 0);
 
-    // Rotation automatique
-    angleX += 0.01; // Rotation continue sur l'axe X
-    angleY += 0.01; // Rotation continue sur l'axe Y
+    angleX += 0.01;
+    angleY += 0.01;
 
-    // Rotation basée sur la souris
-    let deltaX = mouseX - prevMouseX; // Calcul du mouvement horizontal de la souris
-    let deltaY = mouseY - prevMouseY; // Calcul du mouvement vertical de la souris
+    let deltaX = mouseX - prevMouseX;
+    let deltaY = mouseY - prevMouseY;
+    angleX += deltaY * 0.01;
+    angleY += deltaX * 0.01;
 
-    angleX += deltaY * 0.01; // Rotation en fonction du mouvement vertical de la souris
-    angleY += deltaX * 0.01; // Rotation en fonction du mouvement horizontal de la souris
-
-    // Appliquer les rotations
     rotateX(angleX);
     rotateY(angleY);
-
-    // Dessiner un cube avec un remplissage et un contour
     box(cubeSize);
 
-    // Mise à jour de la position du cube pour simuler la gravité
-    velocityY += gravity; // Appliquer la gravité
-    offsetY += velocityY; // Mettre à jour la position Y du cube
+    velocityY += gravity;
+    offsetY += velocityY;
 
-    // Si le cube atteint le bas de la fenêtre, il rebondit
     if (offsetY + cubeSize / 2 >= height / 2) {
-        offsetY = height / 2 - cubeSize / 2; // Ajuster la position pour éviter qu'il dépasse
-        velocityY *= -bounceFactor; // Inverser la direction de la vitesse et appliquer le facteur de rebond
+        offsetY = height / 2 - cubeSize / 2;
+        velocityY *= -bounceFactor;
     }
 
-    // Si le cube atteint le haut de la fenêtre, il rebondit également
     if (offsetY - cubeSize / 2 <= -height / 2) {
         offsetY = -height / 2 + cubeSize / 2;
         velocityY *= -bounceFactor;
     }
 
-    // Mettre à jour la position précédente de la souris pour le prochain frame
     prevMouseX = mouseX;
     prevMouseY = mouseY;
 }
 
-// Fonction pour gérer le début du drag
 function mousePressed() {
     dragging = true;
 }
 
-// Fonction pour gérer le déplacement du cube
 function mouseDragged() {
     if (dragging) {
-        offsetX += (mouseX - pmouseX); // Déplacer le cube en X
-        offsetY += (mouseY - pmouseY); // Déplacer le cube en Y
+        offsetX += (mouseX - pmouseX);
+        offsetY += (mouseY - pmouseY);
     }
 }
 
-// Arrêter le drag lorsque la souris est relâchée
 function mouseReleased() {
     dragging = false;
+}
+
+// Support tactile
+function touchStarted() {
+    dragging = true;
+    touchStartX = touches[0].x;
+    touchStartY = touches[0].y;
+    return false;
+}
+
+function touchMoved() {
+    if (dragging && touches.length > 0) {
+        let touchX = touches[0].x;
+        let touchY = touches[0].y;
+
+        offsetX += (touchX - touchStartX);
+        offsetY += (touchY - touchStartY);
+
+        touchStartX = touchX;
+        touchStartY = touchY;
+    }
+    return false;
+}
+
+function touchEnded() {
+    dragging = false;
+    return false;
 }
 
 function windowResized() {
