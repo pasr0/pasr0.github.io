@@ -6,12 +6,106 @@
     <title>Romane Pasco - Portfolio</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            overflow: auto;
+            overflow-x: hidden;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: #333;
+        }
+
+        /* Définir le style de la grille */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .grid img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .grid img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Ajustements pour les petits écrans */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr; /* Une seule colonne sur petits écrans */
+            }
+
+            .grid img {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+
+        /* Style du titre */
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 2rem;
+        }
+
+        /* Styles pour la barre de navigation */
+        nav {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        nav a {
+            color: #fff;
+            margin: 0 15px;
+            text-decoration: none;
+            font-size: 1.2rem;
+        }
+
+        nav a:hover {
+            color: #f1f1f1;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        /* Button style */
+        #colorButton {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #colorButton:hover {
+            background-color: #555;
+        }
+    </style>
 </head>
 <body>
-    <style>  body {overflow: auto;  overflow-x: hidden ;}</style>
     <canvas id="grain-overlay"></canvas>
     
     <h1>ROMANE PASCO</h1>
+    
     <div class="grid">
         <img src="https://github.com/pasr0/media/blob/main/BAHANCEFAYT/3.png?raw=true" class="clickable" data-name="Workshop Fayot">
         <img src="https://github.com/pasr0/media/blob/main/A4%20-%209.jpg?raw=true" class="clickable" data-name="Affiches aragonites">
@@ -27,8 +121,6 @@
         <img src="https://github.com/pasr0/media/blob/main/ezgif-63d216ba5a1325.gif?raw=true" class="clickable" data-name="Ticket motion">
         <img src="https://github.com/pasr0/media/blob/main/BONHOMME.png?raw=true" class="clickable" data-name="3d Klub Blender">
         <img src="https://github.com/pasr0/media/blob/main/eier%20satan%20frontMOCK.png?raw=true" class="clickable" data-name="Tool t-shirt">
-        
-    
     </div>
 
     <nav>
@@ -37,6 +129,7 @@
         <a href="Contact.html" class="clickable" data-name="Contact" id="contact-link">Contact</a>
         <button id="colorButton" class="clickable" data-name="Magie">Couleurs</button>
     </nav>
+    
     <div id="tooltip" class="tooltip"></div>
     
     <script>
@@ -100,8 +193,7 @@
         // Appliquer les couleurs stockées à l'ouverture de la page
         window.addEventListener('load', function() {
             applyStoredColors();  // Charger les couleurs stockées
-            // Initialiser la position de l'élément <h1>
-            document.querySelector('h1').style.top = '20px';
+            document.querySelector('h1').style.top = '20px'; // Initialiser la position de l'élément <h1>
         });
 
         // Ajouter un événement au bouton pour changer les couleurs
@@ -127,45 +219,41 @@
                 tooltip.style.display = 'none';
             });
         });
+
         // Ajout du grain sur le canvas
-window.addEventListener('load', function() {
-    const canvas = document.getElementById("grain-overlay");
-    const ctx = canvas.getContext("2d");
+        window.addEventListener('load', function() {
+            const canvas = document.getElementById("grain-overlay");
+            const ctx = canvas.getContext("2d");
 
-    // Ajuster la taille du canvas à la taille de la fenêtre
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
 
-    // Fonction pour dessiner le bruit/grain
-    function drawNoise() {
-        const imageData = ctx.createImageData(canvas.width, canvas.height);
-        const pixels = imageData.data;
+            // Fonction pour dessiner le bruit/grain
+            function drawNoise() {
+                const imageData = ctx.createImageData(canvas.width, canvas.height);
+                const pixels = imageData.data;
 
-        for (let i = 0; i < pixels.length; i += 4) {
-            const intensity = Math.random() * 100;
-            pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity; // Gris
-            pixels[i + 3] = 50; // Opacité du grain (0-255)
-        }
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const intensity = Math.random() * 100;
+                    pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity;
+                    pixels[i + 3] = 50; // Opacité
+                }
 
-        ctx.putImageData(imageData, 0, 0);
-    }
+                ctx.putImageData(imageData, 0, 0);
+            }
 
-    // Fonction pour animer le bruit/grain
-    function animateNoise() {
-        drawNoise();
-        requestAnimationFrame(animateNoise);
-    }
+            function animateNoise() {
+                drawNoise();
+                requestAnimationFrame(animateNoise);
+            }
 
-    animateNoise();
+            animateNoise();
 
-    // Ajuster la taille du canvas si la fenêtre est redimensionnée
-    window.addEventListener("resize", function() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    });
-});
-
-
+            window.addEventListener("resize", function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        });
     </script>
 </body>
 </html>
