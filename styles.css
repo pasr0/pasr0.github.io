@@ -176,8 +176,8 @@ nav a:hover {
   grid-auto-rows: minmax(250px, auto); /* Hauteur automatique des lignes */
   gap: 0px; /* Espacement entre les éléments */
   width: 100%;
-  max-width: 1100px;
-  margin: 0px;
+  max-width: 1100px; /* Correction de max-width */
+  padding-top: 10px; /* Petit espace au-dessus de la grille */
 }
 
 .grid img,
@@ -188,10 +188,10 @@ nav a:hover {
   display: block;
 }
 
-
 .grid img:hover {
   opacity: 0.6;
 }
+
 
 
 /* Les éléments de la grille sont tous ajustés sans espace vide */
