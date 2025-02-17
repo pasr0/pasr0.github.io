@@ -1,7 +1,12 @@
-window.addEventListener('load', function() { 
-  document.querySelector('h1').style.top = '20px';
+window.addEventListener('load', function() {
+    // Initialisation de la position de l'élément <h1> après le chargement de la page
+    document.querySelector('h1').style.top = '20px';
+
+    // Appliquer les couleurs stockées lors du chargement de la page
+    applyStoredColors();
 });
 
+// Gestion des tooltips pour les éléments cliquables
 const elements = document.querySelectorAll('.clickable');
 const tooltip = document.getElementById('tooltip');
 
@@ -22,61 +27,69 @@ elements.forEach(element => {
     });
 });
 
+// Liste des palettes de couleurs définies
 const palettes = [
-  { background: "#a5dcf8", text: "#664cde" }, 
-  { background: "#f9f274", text: "#8311ef" }, 
-  { background: "#5de537", text: "#0b0baf" }, 
-  { background: "#b0c942", text: "#edf6d1" }, 
-  { background: "#d2bfa7", text: "#3d78b2" }, 
-  { background: "#000000", text: "#ffffff" }, 
-  { background: "#ffffff", text: "#000000" }, 
-  { background: "#c6dbb5", text: "#d44e14" }, 
-  { background: "#1625f6", text: "#eadde7" }, 
-  { background: "#e6733e", text: "#edeb5d" }, 
-  { background: "#fcddc4", text: "#2f7eb7" }, 
-  { background: "#d3d7a1", text: "#0bb4c6" }, 
+  { background: "#a5dcf8", text: "#664cde" },
+  { background: "#f9f274", text: "#8311ef" },
+  { background: "#5de537", text: "#0b0baf" },
+  { background: "#b0c942", text: "#edf6d1" },
+  { background: "#d2bfa7", text: "#3d78b2" },
+  { background: "#000000", text: "#ffffff" },
+  { background: "#ffffff", text: "#000000" },
+  { background: "#c6dbb5", text: "#d44e14" },
+  { background: "#1625f6", text: "#eadde7" },
+  { background: "#e6733e", text: "#edeb5d" },
+  { background: "#fcddc4", text: "#2f7eb7" },
+  { background: "#d3d7a1", text: "#0bb4c6" }
 ];
 
+// Fonction pour changer les couleurs aléatoirement
 function changeColors() {
-  const randomPalette = palettes[Math.floor(Math.random() * palettes.length)];
+    const randomPalette = palettes[Math.floor(Math.random() * palettes.length)];
 
-  document.body.style.backgroundColor = randomPalette.background;
-  document.body.style.color = randomPalette.text;
+    // Appliquer les couleurs au body et aux liens
+    document.body.style.backgroundColor = randomPalette.background;
+    document.body.style.color = randomPalette.text;
 
-  const links = document.querySelectorAll('a');
-  links.forEach(link => {
-      link.style.color = randomPalette.text;
-  });
+    const links = document.querySelectorAll('a');
+    links.forEach(link => {
+        link.style.color = randomPalette.text;
+    });
 
-  const button = document.getElementById('colorButton');
-  button.style.color = randomPalette.text;
+    const button = document.getElementById('colorButton');
+    button.style.color = randomPalette.text;
 
-  localStorage.setItem('backgroundColor', randomPalette.background);
-  localStorage.setItem('textColor', randomPalette.text);
+    // Sauvegarder les couleurs dans le localStorage
+    localStorage.setItem('backgroundColor', randomPalette.background);
+    localStorage.setItem('textColor', randomPalette.text);
 
-  applyScrollbarStyles(randomPalette);
+    // Appliquer les styles du scrollbar
+    applyScrollbarStyles(randomPalette);
 }
 
+// Fonction pour appliquer les couleurs stockées dans le localStorage
 function applyStoredColors() {
-  const storedBackgroundColor = localStorage.getItem('backgroundColor');
-  const storedTextColor = localStorage.getItem('textColor');
+    const storedBackgroundColor = localStorage.getItem('backgroundColor');
+    const storedTextColor = localStorage.getItem('textColor');
 
-  if (storedBackgroundColor && storedTextColor) {
-      document.body.style.backgroundColor = storedBackgroundColor;
-      document.body.style.color = storedTextColor;
+    if (storedBackgroundColor && storedTextColor) {
+        document.body.style.backgroundColor = storedBackgroundColor;
+        document.body.style.color = storedTextColor;
 
-      const links = document.querySelectorAll('a');
-      links.forEach(link => {
-          link.style.color = storedTextColor;
-      });
+        const links = document.querySelectorAll('a');
+        links.forEach(link => {
+            link.style.color = storedTextColor;
+        });
 
-      const button = document.getElementById('colorButton');
-      button.style.color = storedTextColor;
+        const button = document.getElementById('colorButton');
+        button.style.color = storedTextColor;
 
-      applyScrollbarStyles({ background: storedBackgroundColor, text: storedTextColor });
-  }
+        // Appliquer les styles du scrollbar avec les couleurs stockées
+        applyScrollbarStyles({ background: storedBackgroundColor, text: storedTextColor });
+    }
 }
 
+// Fonction pour appliquer les styles de scrollbar
 function applyScrollbarStyles(palette) {
     let style = document.getElementById('scrollbar-style');
     if (!style) {
@@ -84,6 +97,7 @@ function applyScrollbarStyles(palette) {
         style.id = 'scrollbar-style';
         document.head.appendChild(style);
     }
+
     style.innerHTML = `
         ::-webkit-scrollbar {
             width: 10px;
@@ -98,17 +112,10 @@ function applyScrollbarStyles(palette) {
     `;
 }
 
-window.onload = applyStoredColors;
-
+// Ajouter l'événement pour changer les couleurs au clic du bouton
 document.getElementById('colorButton').addEventListener('click', changeColors);
 
-
-function applyScrollbarStyles(palette) {
-  document.documentElement.style.setProperty('--scrollbar-background', palette.background);
-  document.documentElement.style.setProperty('--scrollbar-thumb', palette.text);
-}
-
+// Forcer le recalcul du layout et afficher le body
 document.body.style.display = "none";
 document.body.offsetHeight; // Force le recalcul du layout
 document.body.style.display = "block";
-
