@@ -119,3 +119,8 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     cubeSize = min(width, height) * 0.2;
 }
+
+   document.addEventListener('touchmove', function(event) {
+        event.preventDefault();
+    }, { passive: false });
+}
