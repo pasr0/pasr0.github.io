@@ -1,4 +1,4 @@
-let angleX = 0;
+/*let angleX = 0;
 let angleY = 0;
 let offsetX = 0;
 let offsetY = 0;
