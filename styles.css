@@ -110,7 +110,7 @@ ul {
   }
 
   h1 {
-    font-size: 3em; /* Réduire la taille de la police */
+    font-size: 2em; /* Réduire la taille de la police */
     letter-spacing: -2px;
     text-align: center; /* Centrer le texte */
     position: fixed;
@@ -135,15 +135,16 @@ ul {
     display: sticky;
     justify-content: space-around;
     position: fixed;
+    bottom: 10%;
   }
 
   nav a {
     text-decoration: none;
-    font-size: 1.2em;
+    font-size: 1em;
     font-weight: 500;
     letter-spacing: -0.4px;
     display: inline-block;
-    bottom: 0;
+    bottom: 10%;
   
   }
 
