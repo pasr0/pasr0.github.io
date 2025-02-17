@@ -152,6 +152,13 @@ ul {
     width: 70%;
     padding: 10%;
   }
+
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -10; /* Met le canvas en arrière-plan */
+}
 }
 
 
