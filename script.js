@@ -1,4 +1,4 @@
-window.addEventListener('load', function() {
+window.addEventListener('load', function() { 
   document.querySelector('h1').style.top = '20px';
 });
 
@@ -13,16 +13,15 @@ elements.forEach(element => {
     });
 
     element.addEventListener('mousemove', function(event) {
-        tooltip.style.left = event.pageX + 10 + 'px'; // Positionne le tooltip légèrement à droite du curseur
-        tooltip.style.top = event.pageY + 10 + 'px';  // Positionne le tooltip légèrement en dessous du curseur
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY + 10 + 'px';
     });
 
     element.addEventListener('mouseleave', function() {
-        tooltip.style.display = 'none'; // Cache le tooltip quand le curseur quitte l'élément
+        tooltip.style.display = 'none';
     });
 });
 
-// Palettes avec une couleur de fond et une couleur de texte contrastée
 const palettes = [
   { background: "#a5dcf8", text: "#664cde" }, 
   { background: "#f9f274", text: "#8311ef" }, 
@@ -38,66 +37,73 @@ const palettes = [
   { background: "#d3d7a1", text: "#0bb4c6" }, 
 ];
 
-// Fonction pour changer les couleurs du fond et du texte
 function changeColors() {
-  // Choisir une palette aléatoire
   const randomPalette = palettes[Math.floor(Math.random() * palettes.length)];
 
-  // Appliquer la couleur de fond et du texte au body
   document.body.style.backgroundColor = randomPalette.background;
   document.body.style.color = randomPalette.text;
 
-  // Modifier la couleur des liens
   const links = document.querySelectorAll('a');
   links.forEach(link => {
       link.style.color = randomPalette.text;
   });
 
-  // Modifier la couleur du bouton
   const button = document.getElementById('colorButton');
-
   button.style.color = randomPalette.text;
 
-  const scoreBox = document.getElementById('scoreBox');
-  scoreBox.style.backgroundColor = randomPalette.text;  // Inverser le fond et le texte
-  scoreBox.style.color = randomPalette.background;      
-
-
-  // Sauvegarder les couleurs dans le localStorage pour qu'elles persistent sur toutes les pages
   localStorage.setItem('backgroundColor', randomPalette.background);
   localStorage.setItem('textColor', randomPalette.text);
+
+  applyScrollbarStyles(randomPalette);
 }
 
-// Fonction pour appliquer les couleurs sauvegardées au chargement de la page
-// Fonction pour appliquer les couleurs sauvegardées au chargement de la page
 function applyStoredColors() {
   const storedBackgroundColor = localStorage.getItem('backgroundColor');
   const storedTextColor = localStorage.getItem('textColor');
 
-  // Si les couleurs sont stockées, les appliquer
   if (storedBackgroundColor && storedTextColor) {
       document.body.style.backgroundColor = storedBackgroundColor;
       document.body.style.color = storedTextColor;
 
-      // Appliquer la couleur aux liens
       const links = document.querySelectorAll('a');
       links.forEach(link => {
           link.style.color = storedTextColor;
       });
 
-      // Appliquer les couleurs au bouton
       const button = document.getElementById('colorButton');
       button.style.color = storedTextColor;
 
-      // Appliquer les couleurs à la scoreBox
-      const scoreBox = document.getElementById('scoreBox');
-      scoreBox.style.backgroundColor = storedTextColor;  // Inverser fond et texte
-      scoreBox.style.color = storedBackgroundColor;      // Inverser fond et texte
+      applyScrollbarStyles({ background: storedBackgroundColor, text: storedTextColor });
   }
+}
+
+function applyScrollbarStyles(palette) {
+    let style = document.getElementById('scrollbar-style');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'scrollbar-style';
+        document.head.appendChild(style);
+    }
+    style.innerHTML = `
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: ${palette.background};
+        }
+        ::-webkit-scrollbar-thumb {
+            background: ${palette.text};
+            border-radius: 5px;
+        }
+    `;
 }
 
 window.onload = applyStoredColors;
 
-// Ajouter un événement au bouton pour changer les couleurs lors du clic
 document.getElementById('colorButton').addEventListener('click', changeColors);
 
+
+function applyScrollbarStyles(palette) {
+  document.documentElement.style.setProperty('--scrollbar-background', palette.background);
+  document.documentElement.style.setProperty('--scrollbar-thumb', palette.text);
+}
