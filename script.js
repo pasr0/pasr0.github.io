@@ -107,3 +107,8 @@ function applyScrollbarStyles(palette) {
   document.documentElement.style.setProperty('--scrollbar-background', palette.background);
   document.documentElement.style.setProperty('--scrollbar-thumb', palette.text);
 }
+
+document.body.style.display = "none";
+document.body.offsetHeight; // Force le recalcul du layout
+document.body.style.display = "block";
+
