@@ -70,6 +70,7 @@ ul {
   align-items: center;
   width: 80%;
   max-width: 1200px;
+  margin: 0 auto;
 }
 
 .text-section {
@@ -99,23 +100,22 @@ ul {
   height: auto;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   body {
     overflow: hidden;
   }
 
   h1 {
-    font-size: 2.5em; /* Augmente la taille de la police sur mobile */
+    font-size: 3.5em; /* Ajustement plus subtil pour les tablettes */
     letter-spacing: -2px;
     text-align: center;
-    position: fixed;
-    top: 10%; /* Ajuste la position pour éviter la superposition avec le nav */
+    position: relative;
   }
 
   .container {
     flex-direction: column;
     align-items: center;
-    margin-top: 120px;
+    margin-top: 100px;
   }
 
   .text-section,
@@ -135,24 +135,53 @@ ul {
     justify-content: space-between;
     padding: 12px 15px;
     z-index: 1000;
-    pointer-events: auto; /* Garantit que la nav est interactive */
   }
 
   nav a {
     text-decoration: none;
-    font-size: 1.2em;
+    font-size: 1em;
     font-weight: 500;
     letter-spacing: -0.4px;
     display: inline-block;
-    padding: 8px 12px; /* Espacement amélioré */
-    transition: color 0.3s ease;
-    pointer-events: auto; /* Assure que les liens sont cliquables */
+    padding: 8px 12px;
   }
-
 
   .image-section {
     width: 70%;
     padding: 10%;
+  }
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.5em; /* Taille réduite pour mobile */
+    text-align: center;
+    top: 15%;
+  }
+
+  .container {
+    flex-direction: column;
+    align-items: center;
+    margin-top: 80px;
+  }
+
+  .text-section,
+  .image-section {
+    width: 100%;
+  }
+
+  .text-section {
+    text-align: justify;
+    font-size: 1em; /* Ajustement de la taille de texte */
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Adaptation à de plus petites résolutions */
+  }
+
+  .image-section {
+    width: 100%;
+    padding: 0;
   }
 }
 
@@ -162,8 +191,8 @@ nav {
   justify-content: space-around;
   position: fixed;
   bottom: 0;
-  padding-bottom: 5%;
-  z-index: 1000; /* Assure que la nav est au-dessus des autres éléments */
+  padding: 12px 0;
+  z-index: 1000;
 }
 
 nav a {
@@ -172,7 +201,7 @@ nav a {
   font-weight: 500;
   letter-spacing: -0.4px;
   display: inline-block;
-  bottom: 0;
+  padding: 10px;
 }
 
 .grid {
@@ -181,8 +210,7 @@ nav a {
   grid-auto-rows: minmax(250px, auto);
   gap: 0px;
   width: 100%;
-  max-width: 1100%;
-  margin: 0px;
+  margin: 0;
 }
 
 .grid img,
