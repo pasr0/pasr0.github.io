@@ -176,8 +176,7 @@ nav a:hover {
   grid-auto-rows: minmax(250px, auto); /* Hauteur automatique des lignes */
   gap: 0px; /* Espacement entre les éléments */
   width: 100%;
-  max-width: 1100;
-  margin: 90px;
+  max-width: 1100px;
 }
 
 .grid img,
