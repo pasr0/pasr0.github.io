@@ -170,22 +170,72 @@ nav a:hover {
   opacity: 0.6;
 }
 
-
-
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* S'adapte dynamiquement */
-  grid-auto-rows: 1fr; /* Assure un remplissage vertical */
-  height: 100vh; /* Prend toute la hauteur de l'écran */
-  width: 100vw; /* Prend toute la largeur */
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Colonnes flexibles */
+  grid-auto-rows: minmax(250px, auto); /* Hauteur automatique des lignes */
+  gap: 0px; /* Espacement entre les éléments */
+  width: 100%;
+  max-width: 1100;
+  margin: 90px;
 }
 
 .grid img,
 .grid video {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Remplit sans déformation */
+  object-fit: cover; /* Remplir l'espace sans déformer l'image */
+  display: block;
 }
+
+
+.grid img:hover {
+  opacity: 0.6;
+}
+
+
+/* Les éléments de la grille sont tous ajustés sans espace vide */
+.grid img:nth-child(1) {
+  grid-column: span 2; /* Image 1 prend deux colonnes */
+  grid-row: span 2; /* Image 1 prend deux lignes */
+}
+
+.grid img:nth-child(2) {
+  grid-column: span 1; /* Image 2 prend une colonne */
+  grid-row: span 1;   /* Image 2 prend une ligne */
+}
+
+.grid img:nth-child(3) {
+  grid-column: span 1; /* Image 3 prend une colonne */
+  grid-row: span 2;    /* Image 3 prend deux lignes */
+}
+
+.grid video:nth-child(4) {
+  grid-column: span 1; /* Vidéo prend une colonne */
+  grid-row: span 1;    /* Vidéo prend une ligne */
+}
+
+.grid img:nth-child(5) {
+  grid-column: span 1; /* Image 5 prend une colonne */
+  grid-row: span 1;    /* Image 5 prend une ligne */
+}
+
+.grid img:nth-child(6) {
+  grid-column: span 2; /* Image 6 prend deux colonnes */
+  grid-row: span 1;    /* Image 6 prend une ligne */
+}
+
+.grid video:nth-child(7) {
+  grid-column: span 1; /* Vidéo prend une colonne */
+  grid-row: span 2;    /* Vidéo prend deux lignes */
+}
+
+.grid img:nth-child(8) {
+  grid-column: span 1; /* Image 8 prend une colonne */
+  grid-row: span 1;    /* Image 8 prend une ligne */
+}
+
+
 #grain-overlay {
   position: fixed;
   top: 0;
