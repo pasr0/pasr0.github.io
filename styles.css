@@ -106,7 +106,7 @@ ul {
 
 @media (max-width: 768px) {
   body {
-    overflow: auto;
+    overflow: hidden;
   }
 
   h1 {
@@ -135,12 +135,11 @@ ul {
     display: sticky;
     justify-content: space-around;
     position: fixed;
-    font-size: 0.8em;
   }
 
   nav a {
     text-decoration: none;
-    font-size: 0.6em;
+    font-size: 1.2em;
     font-weight: 500;
     letter-spacing: -0.4px;
     display: inline-block;
