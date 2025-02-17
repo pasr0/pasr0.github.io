@@ -1,8 +1,15 @@
+@font-face {
+  font-family: 'ABCDiatype';
+  src: url('media/ABCDiatypeVariable-Trial.woff2') format('woff2');
+  font-weight: 100 900; /* Ajuste cette plage selon les variantes de poids que ta police supporte */
+  font-display: swap; /* Pour améliorer la performance de chargement de la police */
+}
+
 body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: Arial, sans-serif;
+  font-family: 'ABCDiatype', sans-serif;
   overflow: hidden; /* Empêche le défilement pendant l'animation */
   overflow-x: hidden;
   cursor: crosshair;
