@@ -13,34 +13,31 @@
     <script src="box.js"></script>
 
     <h1 style="position: absolute; top: -100vh; /* Positionnement initial pour l'animation */
-  transition: top 1s ease-in-out, font-size 0.5s ease, transform 0.5s ease; /* Durée et type d'animation */">ROMANE PASCO</h1>
-
-
+        transition: top 1s ease-in-out, font-size 0.5s ease, transform 0.5s ease; /* Durée et type d'animation */">ROMANE PASCO</h1>
 
     <nav>
-        
         <a href="Home.html" class="clickable" data-name="Home" id="home-link">Home</a>
-        <a href="Galerie.html"class="clickable" data-name="Galerie" id="galerie-link">Galerie</a>
-        <a href="Contact.html" class="clickable" data-name="Contact" id="home-link"id="contact-link">Contact</a>
-        <button id="colorButton"class="clickable" data-name="Magie" >Couleurs</button>
+        <a href="Galerie.html" class="clickable" data-name="Galerie" id="galerie-link">Galerie</a>
+        <a href="Contact.html" class="clickable" data-name="Contact" id="contact-link">Contact</a>
+        <button id="colorButton" class="clickable" data-name="Magie">Couleurs</button>
     </nav>
     <div id="tooltip" class="tooltip"></div>
 
     <script>
         // Liste des palettes définies
         const palettes = [
-            { background: "#a5dcf8", text: "#664cde" }, 
-            { background: "#f9f274", text: "#8311ef" }, 
-            { background: "#5de537", text: "#0b0baf" }, 
-            { background: "#b0c942", text: "#edf6d1" }, 
-            { background: "#d2bfa7", text: "#3d78b2" }, 
-            { background: "#000000", text: "#ffffff" }, 
-            { background: "#ffffff", text: "#000000" }, 
-            { background: "#c6dbb5", text: "#d44e14" }, 
-            { background: "#1625f6", text: "#eadde7" }, 
-            { background: "#e6733e", text: "#edeb5d" }, 
-            { background: "#fcddc4", text: "#2f7eb7" }, 
-            { background: "#d3d7a1", text: "#0bb4c6" }, 
+            { background: "#a5dcf8", text: "#664cde" },
+            { background: "#f9f274", text: "#8311ef" },
+            { background: "#5de537", text: "#0b0baf" },
+            { background: "#b0c942", text: "#edf6d1" },
+            { background: "#d2bfa7", text: "#3d78b2" },
+            { background: "#000000", text: "#ffffff" },
+            { background: "#ffffff", text: "#000000" },
+            { background: "#c6dbb5", text: "#d44e14" },
+            { background: "#1625f6", text: "#eadde7" },
+            { background: "#e6733e", text: "#edeb5d" },
+            { background: "#fcddc4", text: "#2f7eb7" },
+            { background: "#d3d7a1", text: "#0bb4c6" },
         ];
 
         // Fonction pour changer les couleurs
@@ -60,11 +57,6 @@
             const button = document.getElementById('colorButton');
             button.style.color = randomPalette.text;
 
-            const scoreBox = document.getElementById('scoreBox');
-            scoreBox.style.backgroundColor = randomPalette.text;  // Inverser le fond et le texte
-            scoreBox.style.color = randomPalette.background;      
-
-            
             // Sauvegarder les couleurs dans le localStorage
             localStorage.setItem('backgroundColor', randomPalette.background);
             localStorage.setItem('textColor', randomPalette.text);
@@ -119,44 +111,44 @@
                 tooltip.style.display = 'none';
             });
         });
+
         // Ajout du grain sur le canvas
-window.addEventListener('load', function() {
-    const canvas = document.getElementById("grain-overlay");
-    const ctx = canvas.getContext("2d");
+        window.addEventListener('load', function() {
+            const canvas = document.getElementById("grain-overlay");
+            const ctx = canvas.getContext("2d");
 
-    // Ajuster la taille du canvas à la taille de la fenêtre
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+            // Ajuster la taille du canvas à la taille de la fenêtre
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
 
-    // Fonction pour dessiner le bruit/grain
-    function drawNoise() {
-        const imageData = ctx.createImageData(canvas.width, canvas.height);
-        const pixels = imageData.data;
+            // Fonction pour dessiner le bruit/grain
+            function drawNoise() {
+                const imageData = ctx.createImageData(canvas.width, canvas.height);
+                const pixels = imageData.data;
 
-        for (let i = 0; i < pixels.length; i += 4) {
-            const intensity = Math.random() * 170;
-            pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity; // Gris
-            pixels[i + 3] = 50; // Opacité du grain (0-255)
-        }
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const intensity = Math.random() * 170;
+                    pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity; // Gris
+                    pixels[i + 3] = 50; // Opacité du grain (0-255)
+                }
 
-        ctx.putImageData(imageData, 0, 0);
-    }
+                ctx.putImageData(imageData, 0, 0);
+            }
 
-    // Fonction pour animer le bruit/grain
-    function animateNoise() {
-        drawNoise();
-        requestAnimationFrame(animateNoise);
-    }
+            // Fonction pour animer le bruit/grain
+            function animateNoise() {
+                drawNoise();
+                requestAnimationFrame(animateNoise);
+            }
 
-    animateNoise();
+            animateNoise();
 
-    // Ajuster la taille du canvas si la fenêtre est redimensionnée
-    window.addEventListener("resize", function() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    });
-});
-
+            // Ajuster la taille du canvas si la fenêtre est redimensionnée
+            window.addEventListener("resize", function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        });
 
     </script>
     <script src="script.js"></script>
