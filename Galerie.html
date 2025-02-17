@@ -6,30 +6,77 @@
     <title>Romane Pasco - Portfolio</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            position: relative;
+            overflow: hidden;
+        }
+        #grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.1; /* Ajuste l'intensité du bruit */
+        }
+    </style>
 </head>
 <body>
+    <canvas id="grain-overlay"></canvas>
+    
     <h1>Pasco Romane</h1>
     <div class="grid">
         <img src="ezgif-4-e4a5822ac6.gif" alt="Photo 1">
         <video src="JPO_video.mp4" autoplay loop muted></video>
         <img src="Flano.png" alt="Photo 2">
-        <video src="images\NEWVERpophello.mp4" autoplay loop muted></video>
-        <img src="images\eier satan frontMOCK.png" alt="Photo 3">
-        <!--<img src="images\BONHOMME.png" alt="Photo 3">
-        <img src="images\Slide 16_9 - 5.png" alt="Photo 3">
-        <img src="images\Plan de travail 4.png" alt="Photo 3"> 
-        <img src="images\Meahousegreen.png" alt="Photo 3">
-        <img src="images\Instagram post - 7.png" alt="Photo 3">
-        <img src="images\App Icon Mockup 1.png" alt="Photo 3">-->
-      </div>
+        <video src="images/NEWVERpophello.mp4" autoplay loop muted></video>
+        <img src="images/eier satan frontMOCK.png" alt="Photo 3">
+    </div>
 
     <nav>
         <a href="index.html" class="clickable" data-name="Home" id="home-link">Home</a>
-        <a href="Galerie.html"class="clickable" data-name="Galerie" id="galerie-link">Galerie</a>
-        <a href="Contact.html" class="clickable" data-name="Contact" id="home-link"id="contact-link">Contact</a>
-        <button id="colorButton"class="clickable" data-name="Magie" >Couleurs</button>
+        <a href="Galerie.html" class="clickable" data-name="Galerie" id="galerie-link">Galerie</a>
+        <a href="Contact.html" class="clickable" data-name="Contact" id="contact-link">Contact</a>
+        <button id="colorButton" class="clickable" data-name="Magie">Couleurs</button>
     </nav>
     <div id="tooltip" class="tooltip"></div>
+    
+    <script>
+        const canvas = document.getElementById("grain-overlay");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function drawNoise() {
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            const pixels = imageData.data;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                const intensity = Math.random() * 255;
+                pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity;
+                pixels[i + 3] = 30; // Opacité du grain
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function animateNoise() {
+            drawNoise();
+            requestAnimationFrame(animateNoise);
+        }
+
+        window.addEventListener("load", () => {
+            resizeCanvas();
+            animateNoise();
+        });
+
+        window.addEventListener("resize", resizeCanvas);
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
