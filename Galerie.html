@@ -6,33 +6,22 @@
     <title>Romane Pasco - Portfolio</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
-    <style>
-        body {
-            position: relative;
-            overflow: hidden;
-        }
-        #grain-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 9999;
-            opacity: 0.1; /* Ajuste l'intensité du bruit */
-        }
-    </style>
 </head>
 <body>
+    <style>  body {overflow: auto; /* Empêche le défilement pendant l'animation */
+  overflow-x: auto ;}</style>
     <canvas id="grain-overlay"></canvas>
     
     <h1>Pasco Romane</h1>
     <div class="grid">
-        <img src="media/ezgif-4-e4a5822ac6.gif" alt="Photo 1">
-        <video src="media/JPO_video.mp4" autoplay loop muted></video>
-        <img src="media/Flano.png" alt="Photo 2">
-        <video src="media/NEWVERpophello.mp4" autoplay loop muted></video>
-        <img src="media/Seeddating" alt="Photo 3">
+        <img src="images\3.png" class="clickable" data-name="Workshop Fayot">
+        <img src="images\A4 - 9.jpg" class="clickable" data-name="Affiches aragonites">
+        <img src="images\App Icon Mockup 1.png" class="clickable" data-name="UI/UX App Flanô">
+        <video src="images\Jpo3.mp4" autoplay loop muted class="clickable" data-name="Cavalary JPO"></video>
+        <img src="images\Slide 16_9 - 1.png" class="clickable" data-name="Workshop Risographie">
+        <img src="images\Slide 16_9 - 5.png" class="clickable" data-name="Collection Photo">
+        <video src="images\NEWVERpophello.mp4" autoplay loop muted class="clickable" data-name="Cavalary JPO"></video>
+        <img src="images\Vinyl_Record_Mockup_01_S2.png" class="clickable" data-name="Stereolab cover">
     </div>
 
     <nav>
@@ -44,39 +33,132 @@
     <div id="tooltip" class="tooltip"></div>
     
     <script>
-        const canvas = document.getElementById("grain-overlay");
-        const ctx = canvas.getContext("2d");
+        // Liste des palettes définies
+        const palettes = [
+            { background: "#a5dcf8", text: "#664cde" }, 
+            { background: "#f9f274", text: "#8311ef" }, 
+            { background: "#5de537", text: "#0b0baf" }, 
+            { background: "#b0c942", text: "#edf6d1" }, 
+            { background: "#d2bfa7", text: "#3d78b2" }, 
+            { background: "#000000", text: "#ffffff" }, 
+            { background: "#ffffff", text: "#000000" }, 
+            { background: "#c6dbb5", text: "#d44e14" }, 
+            { background: "#1625f6", text: "#eadde7" }, 
+            { background: "#e6733e", text: "#edeb5d" }, 
+            { background: "#fcddc4", text: "#2f7eb7" }, 
+            { background: "#d3d7a1", text: "#0bb4c6" }, 
+        ];
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        // Fonction pour changer les couleurs
+        function changeColors() {
+            const randomPalette = palettes[Math.floor(Math.random() * palettes.length)];
+
+            // Appliquer les couleurs au body
+            document.body.style.backgroundColor = randomPalette.background;
+            document.body.style.color = randomPalette.text;
+
+            // Appliquer aux liens et au bouton
+            const links = document.querySelectorAll('a');
+            links.forEach(link => {
+                link.style.color = randomPalette.text;
+            });
+
+            const button = document.getElementById('colorButton');
+            button.style.color = randomPalette.text;
+
+            // Sauvegarder les couleurs dans le localStorage
+            localStorage.setItem('backgroundColor', randomPalette.background);
+            localStorage.setItem('textColor', randomPalette.text);
         }
 
-        function drawNoise() {
-            const imageData = ctx.createImageData(canvas.width, canvas.height);
-            const pixels = imageData.data;
+        // Fonction pour appliquer les couleurs sauvegardées
+        function applyStoredColors() {
+            const storedBackgroundColor = localStorage.getItem('backgroundColor');
+            const storedTextColor = localStorage.getItem('textColor');
 
-            for (let i = 0; i < pixels.length; i += 4) {
-                const intensity = Math.random() * 255;
-                pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity;
-                pixels[i + 3] = 30; // Opacité du grain
+            if (storedBackgroundColor && storedTextColor) {
+                document.body.style.backgroundColor = storedBackgroundColor;
+                document.body.style.color = storedTextColor;
+
+                const links = document.querySelectorAll('a');
+                links.forEach(link => {
+                    link.style.color = storedTextColor;
+                });
+
+                const button = document.getElementById('colorButton');
+                button.style.color = storedTextColor;
             }
-
-            ctx.putImageData(imageData, 0, 0);
         }
 
-        function animateNoise() {
-            drawNoise();
-            requestAnimationFrame(animateNoise);
-        }
-
-        window.addEventListener("load", () => {
-            resizeCanvas();
-            animateNoise();
+        // Appliquer les couleurs stockées à l'ouverture de la page
+        window.addEventListener('load', function() {
+            applyStoredColors();  // Charger les couleurs stockées
+            // Initialiser la position de l'élément <h1>
+            document.querySelector('h1').style.top = '20px';
         });
 
-        window.addEventListener("resize", resizeCanvas);
+        // Ajouter un événement au bouton pour changer les couleurs
+        document.getElementById('colorButton').addEventListener('click', changeColors);
+
+        // Gestion des tooltips
+        const elements = document.querySelectorAll('.clickable');
+        const tooltip = document.getElementById('tooltip');
+
+        elements.forEach(element => {
+            element.addEventListener('mouseenter', function() {
+                const name = this.getAttribute('data-name');
+                tooltip.textContent = name;
+                tooltip.style.display = 'block';
+            });
+
+            element.addEventListener('mousemove', function(event) {
+                tooltip.style.left = event.pageX + 10 + 'px';
+                tooltip.style.top = event.pageY + 10 + 'px';
+            });
+
+            element.addEventListener('mouseleave', function() {
+                tooltip.style.display = 'none';
+            });
+        });
+        // Ajout du grain sur le canvas
+window.addEventListener('load', function() {
+    const canvas = document.getElementById("grain-overlay");
+    const ctx = canvas.getContext("2d");
+
+    // Ajuster la taille du canvas à la taille de la fenêtre
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Fonction pour dessiner le bruit/grain
+    function drawNoise() {
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
+        const pixels = imageData.data;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+            const intensity = Math.random() * 100;
+            pixels[i] = pixels[i + 1] = pixels[i + 2] = intensity; // Gris
+            pixels[i + 3] = 50; // Opacité du grain (0-255)
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Fonction pour animer le bruit/grain
+    function animateNoise() {
+        drawNoise();
+        requestAnimationFrame(animateNoise);
+    }
+
+    animateNoise();
+
+    // Ajuster la taille du canvas si la fenêtre est redimensionnée
+    window.addEventListener("resize", function() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+});
+
+
     </script>
-    <script src="script.js"></script>
 </body>
 </html>
