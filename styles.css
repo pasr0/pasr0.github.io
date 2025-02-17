@@ -179,8 +179,10 @@ ul {
 
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    grid-auto-rows: 1fr; /* Garantir que les éléments sont carrés en forçant une hauteur égale à la largeur */
+    grid-auto-rows: 1fr; /* Garder un ratio 1:1 pour chaque élément */
     gap: 10px;
+    width: 100%;
+    margin: 0;
   }
 
   .image-section {
@@ -226,9 +228,9 @@ nav a {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  grid-auto-rows: 1fr; /* Assure que les éléments de la grille ont un ratio 1:1 */
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Colonnes flexibles pour s'adapter à l'écran */
+  grid-auto-rows: 1fr; /* Hauteur égale à la largeur */
+  gap: 40px;
   width: 100%;
   margin: 0;
 }
@@ -243,46 +245,6 @@ nav a {
 
 .grid img:hover {
   opacity: 0.6;
-}
-
-.grid img:nth-child(1) {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-.grid img:nth-child(2) {
-  grid-column: span 1;
-  grid-row: span 1;
-}
-
-.grid img:nth-child(3) {
-  grid-column: span 1;
-  grid-row: span 2;
-}
-
-.grid video:nth-child(4) {
-  grid-column: span 1;
-  grid-row: span 1;
-}
-
-.grid img:nth-child(5) {
-  grid-column: span 1;
-  grid-row: span 1;
-}
-
-.grid img:nth-child(6) {
-  grid-column: span 2;
-  grid-row: span 1;
-}
-
-.grid video:nth-child(7) {
-  grid-column: span 1;
-  grid-row: span 2;
-}
-
-.grid img:nth-child(8) {
-  grid-column: span 1;
-  grid-row: span 1;
 }
 
 #grain-overlay {
