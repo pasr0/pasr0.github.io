@@ -1,4 +1,4 @@
-/*let angleX = 0;
+let angleX = 0;
 let angleY = 0;
 let offsetX = 0;
 let offsetY = 0;
@@ -127,4 +127,3 @@ function touchStarted(event) {
     touchStartY = touches[0].y;
     return false;
 }
-*/
