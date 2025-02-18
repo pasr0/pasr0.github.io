@@ -18,7 +18,7 @@ function getColors() {
 }
 
 function setup() {
-    createCanvas(windowWidth-10%, windowHeight-10%, WEBGL);
+    createCanvas(windowWidth-50, windowHeight-50, WEBGL);
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     const colors = getColors();
