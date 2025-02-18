@@ -58,6 +58,7 @@ button, nav button, nav a {
   font-weight: 500;
   letter-spacing: -0.4px;
   display: inline-block;
+  z-index: 1000;
 }
 
 .clickable {
@@ -86,6 +87,7 @@ nav {
     justify-content: space-between;
     padding: 30px 30px;
     font-size: 0.7em;
+    z-index: 1000;
   }
 }
 
