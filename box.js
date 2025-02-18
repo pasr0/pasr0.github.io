@@ -11,18 +11,19 @@ let gravity = 0.3;
 let bounceFactor = 0.8;
 let touchStartX, touchStartY;
 
+// 🔹 Récupère les couleurs du body
 function getColors() {
-    const backgroundColor = window.getComputedStyle(document.body).backgroundColor;
-    const textColor = window.getComputedStyle(document.body).color;
-    return { background: backgroundColor, text: textColor };
+    let bodyStyles = window.getComputedStyle(document.body);
+    return {
+        background: bodyStyles.backgroundColor || "#ffffff", // Blanc par défaut
+        text: bodyStyles.color || "#000000" // Noir par défaut
+    };
 }
 
 function setup() {
-    createCanvas(windowWidth, windowHeight, WEBGL); // On initialise le canvas en plein écran
-    adjustCanvasSize(); // On ajuste sa taille selon l'écran
-    const colors = getColors();
-    cubeFillColor = colors.background;
-    cubeStrokeColor = colors.text;
+    createCanvas(windowWidth, windowHeight, WEBGL);
+    adjustCanvasSize(); 
+    updateColors(); // Applique les couleurs dès le départ
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     offsetX = 0;
@@ -30,14 +31,15 @@ function setup() {
 }
 
 function draw() {
-    background(cubeFillColor);
+    background(220); // Gris clair pour être sûr que le cube soit visible
+
+    // 🎯 Correction de l'ortho pour s'assurer que le cube est bien visible
     ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
-    translate(0, -height * 0.1, 0);
+    translate(0, 0, 0);
 
-    const colors = getColors();
-    cubeFillColor = colors.background;
-    cubeStrokeColor = colors.text;
+    updateColors();
 
+    // Applique les couleurs pour la box
     fill(cubeFillColor);
     stroke(cubeStrokeColor);
     strokeWeight(2);
@@ -70,6 +72,7 @@ function draw() {
     prevMouseY = mouseY;
 }
 
+// 📌 Gère les interactions souris
 function mousePressed() {
     dragging = true;
 }
@@ -85,7 +88,7 @@ function mouseReleased() {
     dragging = false;
 }
 
-// Support tactile
+// 📌 Gère les interactions tactiles
 function touchStarted(event) {
     if (event.target.tagName !== 'CANVAS') return true;
     dragging = true;
@@ -120,9 +123,17 @@ function adjustCanvasSize() {
     } else {
         resizeCanvas(windowWidth, windowHeight, WEBGL);
     }
-    cubeSize = min(width, height) * 0.2; // On ajuste la taille du cube
+    cubeSize = min(width, height) * 0.2;
 }
 
+// 🔹 Met à jour les couleurs de la box
+function updateColors() {
+    let colors = getColors();
+    cubeFillColor = colors.background;
+    cubeStrokeColor = colors.text;
+}
+
+// 📌 Redimensionne proprement le canvas
 function windowResized() {
     adjustCanvasSize();
 }
