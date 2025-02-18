@@ -180,7 +180,7 @@ ul {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     grid-auto-rows: 1fr; /* Garder un ratio 1:1 pour chaque élément */
-    gap: 10px;
+    gap: 0px;
     width: 100%;
     margin: 0;
   }
@@ -192,7 +192,6 @@ ul {
 
   nav {
     display: flex;
-    flex-direction: column;
     align-items: center;
     padding: 12px 0;
   }
@@ -230,13 +229,12 @@ nav a {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Colonnes flexibles pour s'adapter à l'écran */
   grid-auto-rows: 1fr; /* Hauteur égale à la largeur */
-  gap: 40px;
+  gap: 0px;
   width: 100%;
-  margin: 0;
+  margin: 2px;
 }
 
-.grid img,
-.grid video {
+.grid img{
   width: 100%;
   height: 100%;
   object-fit: cover;
