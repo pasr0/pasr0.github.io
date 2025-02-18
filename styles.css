@@ -134,8 +134,10 @@ ul {
     display: flex;
     justify-content: space-between;
     padding: 12px 15px;
-    z-index: 1000;
+    z-index: 1001;
     pointer-events: auto; /* Garantit que la nav est interactive */
+    background-color: transparent; /* Initialement transparent */
+    transition: background-color 0.3s ease;
   }
 
   nav a {
@@ -154,6 +156,13 @@ ul {
     width: 70%;
     padding: 10%;
   }
+
+  canvas {
+    z-index: -1; /* Toujours derrière */
+  }
+
+}
+
 }
 
 nav {
