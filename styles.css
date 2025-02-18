@@ -5,6 +5,7 @@
   font-display: swap;
 }
 
+/* Global Styles */
 body {
   display: flex;
   flex-direction: column;
@@ -15,22 +16,23 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   width: 100vw;
   height: 100vh;
+  position: relative;
 }
 
-button {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  text-align: inherit;
-  cursor: inherit;
-  text-decoration: none;
-  font-size: 1.2em;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  display: inline-block;
-  bottom: 0;
+@media (max-width: 768px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    cursor: crosshair;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
 }
 
 h1 {
@@ -42,28 +44,52 @@ h1 {
   z-index: 20;
 }
 
+/* Buttons and Links */
+button, nav button, nav a {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: crosshair;
+  text-decoration: none;
+  font-size: 1.2em;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  display: inline-block;
+}
+
 .clickable {
   text-decoration: none;
-  color: rgb(255, 255, 255);
-  transition: color 0.3s ease;
-  cursor: crosshair;
-}
-
-ul {
-  list-style-type: none;
-  color: black;
-  font-size: 0.6em;
-  font-weight: 600;
-}
-
-.tooltip {
-  position: absolute;
-  background-color: black;
   color: white;
-  padding: 5px;
-  display: none;
+  transition: color 0.3s ease;
 }
 
+/* Navigation */
+nav {
+  width: 100%;
+  /*max-width: 800px;*/
+  display: flex;
+  justify-content: space-between;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 30px 200px;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  nav {
+    justify-content: space-between;
+    padding: 30px 30px;
+    font-size: 0.7em;
+  }
+}
+
+/* Layout Sections */
 .container {
   display: flex;
   justify-content: space-between;
@@ -100,16 +126,13 @@ ul {
 }
 
 @media (max-width: 768px) {
-  body {
-    overflow: hidden;
-  }
-
   h1 {
-    font-size: 2.5em; /* Augmente la taille de la police sur mobile */
+    font-size: 2em;
     letter-spacing: -2px;
     text-align: center;
     position: fixed;
-    top: 10%; /* Ajuste la position pour éviter la superposition avec le nav */
+    top: 10%;
+    
   }
 
   .container {
@@ -118,8 +141,7 @@ ul {
     margin-top: 120px;
   }
 
-  .text-section,
-  .image-section {
+  .text-section, .image-section {
     width: 100%;
   }
 
@@ -127,66 +149,26 @@ ul {
     text-align: justify;
   }
 
-  nav {
-    width: 100%;
-    position: fixed;
-    bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 15px;
-    z-index: 1000;
-    pointer-events: auto; /* Garantit que la nav est interactive */
-  }
-
-  nav a {
-    text-decoration: none;
-    font-size: 1.2em;
-    font-weight: 500;
-    letter-spacing: -0.4px;
-    display: inline-block;
-    padding: 8px 12px; /* Espacement amélioré */
-    transition: color 0.3s ease;
-    pointer-events: auto; /* Assure que les liens sont cliquables */
-  }
-
-
   .image-section {
     width: 70%;
     padding: 10%;
   }
 }
 
-nav {
-  width: 90%;
-  display: flex;
-  justify-content: space-around;
-  position: fixed;
-  bottom: 0;
-  padding-bottom: 5%;
-  z-index: 1000; /* Assure que la nav est au-dessus des autres éléments */
-}
-
-nav a {
-  text-decoration: none;
-  font-size: 1.2em;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  display: inline-block;
-  bottom: 0;
-}
-
+/* Grid Layout */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  grid-auto-rows: minmax(250px, auto);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-auto-rows: minmax(200px, auto);
   gap: 0px;
-  width: 100%;
-  max-width: 1100%;
-  margin: 0px;
+  width: 110%;
+  max-width: 1100px;
+  margin: 0;
+  position: relative;
+  transform: translateY(-250px);
 }
 
-.grid img,
-.grid video {
+.grid img{
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -233,8 +215,17 @@ nav a {
 }
 
 .grid img:nth-child(8) {
-  grid-column: span 1;
+  grid-column: span 2;
   grid-row: span 1;
+}
+
+/* Miscellaneous */
+.tooltip {
+  position: absolute;
+  background-color: black;
+  color: white;
+  padding: 5px;
+  display: none;
 }
 
 #grain-overlay {
@@ -245,16 +236,4 @@ nav a {
   height: 100%;
   pointer-events: none;
   z-index: 10;
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--scrollbar-background, );
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, #000);
 }
