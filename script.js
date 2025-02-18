@@ -119,3 +119,23 @@ document.getElementById('colorButton').addEventListener('click', changeColors);
 document.body.style.display = "none";
 document.body.offsetHeight; // Force le recalcul du layout
 document.body.style.display = "block";
+
+document.addEventListener("DOMContentLoaded", function () {
+    let h1Color = window.getComputedStyle(document.querySelector("h1")).color;
+    let nav = document.querySelector("nav");
+
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+
+    if (isMobile()) {
+        nav.style.backgroundColor = h1Color;
+    }
+
+    document.querySelector(".clickable").addEventListener("click", function () {
+        let newBgColor = window.getComputedStyle(document.body).backgroundColor;
+        if (isMobile()) {
+            nav.style.backgroundColor = newBgColor;
+        }
+    });
+});
