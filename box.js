@@ -18,15 +18,15 @@ function getColors() {
 }
 
 function setup() {
-    adjustCanvasSize();
-    prevMouseX = mouseX;
-    prevMouseY = mouseY;
+    createCanvas(windowWidth, windowHeight, WEBGL); // On initialise le canvas en plein écran
+    adjustCanvasSize(); // On ajuste sa taille selon l'écran
     const colors = getColors();
     cubeFillColor = colors.background;
     cubeStrokeColor = colors.text;
-    cubeSize = min(width, height) * 0.2;
+    prevMouseX = mouseX;
+    prevMouseY = mouseY;
     offsetX = 0;
-    offsetY = -height * 0.5;
+    offsetY = -height * 0.2;
 }
 
 function draw() {
@@ -43,9 +43,6 @@ function draw() {
     strokeWeight(2);
 
     translate(offsetX, offsetY, 0);
-
-    angleX += 0.01;
-    angleY += 0.01;
 
     let deltaX = mouseX - prevMouseX;
     let deltaY = mouseY - prevMouseY;
@@ -116,14 +113,14 @@ function touchEnded() {
     return false;
 }
 
-// 🖥️ Gestion du responsive (canvas plein écran sur desktop, réduit sur mobile)
+// 🖥️ Ajuste la taille du canvas selon l'écran
 function adjustCanvasSize() {
     if (window.innerWidth < 760) {
-        resizeCanvas(window.innerWidth * 0.8, window.innerHeight * 0.6);
+        resizeCanvas(window.innerWidth * 0.8, window.innerHeight * 0.6, WEBGL);
     } else {
-        resizeCanvas(windowWidth, windowHeight);
+        resizeCanvas(windowWidth, windowHeight, WEBGL);
     }
-    cubeSize = min(width, height) * 0.2;
+    cubeSize = min(width, height) * 0.2; // On ajuste la taille du cube
 }
 
 function windowResized() {
