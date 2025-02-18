@@ -10,20 +10,24 @@ let velocityY = 0;
 let gravity = 0.3;
 let bounceFactor = 0.8;
 let touchStartX, touchStartY;
+let canvas; // Stocker la référence au canvas
 
-// 🔹 Récupère les couleurs du body
 function getColors() {
     let bodyStyles = window.getComputedStyle(document.body);
     return {
-        background: bodyStyles.backgroundColor || "#ffffff", // Blanc par défaut
-        text: bodyStyles.color || "#000000" // Noir par défaut
+        background: bodyStyles.backgroundColor || "#ffffff",
+        text: bodyStyles.color || "#000000"
     };
 }
 
 function setup() {
-    createCanvas(windowWidth, windowHeight, WEBGL);
-    adjustCanvasSize(); 
-    updateColors(); // Applique les couleurs dès le départ
+    canvas = createCanvas(windowWidth, windowHeight, WEBGL);
+    canvas.position(0, 0);
+    canvas.style("pointer-events", "none"); // Empêche le canvas de bloquer la navigation
+    canvas.style("z-index", "-1"); // Met le canvas en arrière-plan
+
+    adjustCanvasSize();
+    updateColors();
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     offsetX = 0;
@@ -31,15 +35,12 @@ function setup() {
 }
 
 function draw() {
-    background(220); // Gris clair pour être sûr que le cube soit visible
+    background(220);
 
-    // 🎯 Correction de l'ortho pour s'assurer que le cube est bien visible
     ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
     translate(0, 0, 0);
 
     updateColors();
-
-    // Applique les couleurs pour la box
     fill(cubeFillColor);
     stroke(cubeStrokeColor);
     strokeWeight(2);
@@ -72,7 +73,6 @@ function draw() {
     prevMouseY = mouseY;
 }
 
-// 📌 Gère les interactions souris
 function mousePressed() {
     dragging = true;
 }
@@ -88,9 +88,8 @@ function mouseReleased() {
     dragging = false;
 }
 
-// 📌 Gère les interactions tactiles
 function touchStarted(event) {
-    if (event.target.tagName !== 'CANVAS') return true;
+    if (event.target.tagName !== 'CANVAS') return true; 
     dragging = true;
     touchStartX = touches[0].x;
     touchStartY = touches[0].y;
@@ -116,7 +115,6 @@ function touchEnded() {
     return false;
 }
 
-// 🖥️ Ajuste la taille du canvas selon l'écran
 function adjustCanvasSize() {
     if (window.innerWidth < 760) {
         resizeCanvas(window.innerWidth * 0.8, window.innerHeight * 0.6, WEBGL);
@@ -126,14 +124,12 @@ function adjustCanvasSize() {
     cubeSize = min(width, height) * 0.2;
 }
 
-// 🔹 Met à jour les couleurs de la box
 function updateColors() {
     let colors = getColors();
     cubeFillColor = colors.background;
     cubeStrokeColor = colors.text;
 }
 
-// 📌 Redimensionne proprement le canvas
 function windowResized() {
     adjustCanvasSize();
 }
