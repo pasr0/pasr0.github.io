@@ -264,6 +264,13 @@ nav {
   display: none;
 }
 
+ul {
+  list-style-type: none;
+  color: black;
+  font-size: 0.6em;
+  font-weight: 600;
+}
+
 #grain-overlay {
   position: fixed;
   top: 0;
