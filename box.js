@@ -9,7 +9,7 @@ let cubeSize;
 let velocityY = 0;
 let gravity = 0.3;
 let bounceFactor = 0.8;
-let touchStartX, touchStartY; // Position de départ du toucher
+let touchStartX, touchStartY;
 
 function getColors() {
     const backgroundColor = window.getComputedStyle(document.body).backgroundColor;
@@ -18,13 +18,13 @@ function getColors() {
 }
 
 function setup() {
-    createCanvas(windowWidth-50, windowHeight-50, WEBGL);
+    adjustCanvasSize();
     prevMouseX = mouseX;
     prevMouseY = mouseY;
     const colors = getColors();
     cubeFillColor = colors.background;
     cubeStrokeColor = colors.text;
-    cubeSize = min(width, height) * 0.2; 
+    cubeSize = min(width, height) * 0.2;
     offsetX = 0;
     offsetY = -height * 0.5;
 }
@@ -89,7 +89,8 @@ function mouseReleased() {
 }
 
 // Support tactile
-function touchStarted() {
+function touchStarted(event) {
+    if (event.target.tagName !== 'CANVAS') return true;
     dragging = true;
     touchStartX = touches[0].x;
     touchStartY = touches[0].y;
@@ -115,15 +116,16 @@ function touchEnded() {
     return false;
 }
 
-function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
+// 🖥️ Gestion du responsive (canvas plein écran sur desktop, réduit sur mobile)
+function adjustCanvasSize() {
+    if (window.innerWidth < 760) {
+        resizeCanvas(window.innerWidth * 0.8, window.innerHeight * 0.6);
+    } else {
+        resizeCanvas(windowWidth, windowHeight);
+    }
     cubeSize = min(width, height) * 0.2;
 }
 
-function touchStarted(event) {
-    if (event.target.tagName !== 'CANVAS') return true; // Laisse passer les touches hors du canvas
-    dragging = true;
-    touchStartX = touches[0].x;
-    touchStartY = touches[0].y;
-    return false;
+function windowResized() {
+    adjustCanvasSize();
 }
