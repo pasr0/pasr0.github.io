@@ -9,9 +9,7 @@ let cubeSize;
 let velocityY = 0;
 let gravity = 0.3;
 let bounceFactor = 0.8;
-let touchStartX, touchStartY;
-let lastTime = 0;
-let mouseOverCube = false;
+let touchStartX, touchStartY; // Position de départ du toucher
 
 function getColors() {
     const backgroundColor = window.getComputedStyle(document.body).backgroundColor;
@@ -26,14 +24,13 @@ function setup() {
     const colors = getColors();
     cubeFillColor = colors.background;
     cubeStrokeColor = colors.text;
-    cubeSize = min(width, height) * 0.2;
+    cubeSize = min(width, height) * 0.2; 
     offsetX = 0;
     offsetY = -height * 0.5;
-    lastTime = millis();
 }
 
 function draw() {
-    
+   
     ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
     translate(0, -height * 0.1, 0);
 
@@ -47,21 +44,13 @@ function draw() {
 
     translate(offsetX, offsetY, 0);
 
-    let currentTime = millis();
-    let deltaTime = (currentTime - lastTime) / 1000.0; // Temps écoulé en secondes
-    lastTime = currentTime;
-
-    let rotationSpeed = TWO_PI / 5; // 1 tour complet en 5 secondes
-    angleX += rotationSpeed * deltaTime;
-    angleY += rotationSpeed * deltaTime;
+    angleX += 0.01;
+    angleY += 0.01;
 
     let deltaX = mouseX - prevMouseX;
     let deltaY = mouseY - prevMouseY;
-
-    if (dragging) {
-        angleX += deltaY * 0.01;
-        angleY += deltaX * 0.01;
-    }
+    angleX += deltaY * 0.01;
+    angleY += deltaX * 0.01;
 
     rotateX(angleX);
     rotateY(angleY);
@@ -82,15 +71,10 @@ function draw() {
 
     prevMouseX = mouseX;
     prevMouseY = mouseY;
-
-    // Vérifier si la souris est au-dessus du cube
-    checkMouseOverCube();
 }
 
 function mousePressed() {
-    if (mouseOverCube) {
-        dragging = true;
-    }
+    dragging = true;
 }
 
 function mouseDragged() {
@@ -104,24 +88,11 @@ function mouseReleased() {
     dragging = false;
 }
 
-// Vérifie si la souris est sur le cube (approximation en 2D)
-function checkMouseOverCube() {
-    let screenPos = createVector(width / 2 + offsetX, height / 2 + offsetY);
-    let cubeScreenSize = cubeSize / 2;
-    mouseOverCube = (
-        mouseX > screenPos.x - cubeScreenSize &&
-        mouseX < screenPos.x + cubeScreenSize &&
-        mouseY > screenPos.y - cubeScreenSize &&
-        mouseY < screenPos.y + cubeScreenSize
-    );
-}
-
+// Support tactile
 function touchStarted() {
-    if (mouseOverCube) {
-        dragging = true;
-        touchStartX = touches[0].x;
-        touchStartY = touches[0].y;
-    }
+    dragging = true;
+    touchStartX = touches[0].x;
+    touchStartY = touches[0].y;
     return false;
 }
 
