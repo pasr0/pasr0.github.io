@@ -114,6 +114,14 @@ function touchEnded() {
     dragging = false;
     return false;
 }
+    if (window.innerWidth <= 768) { // Si l'écran est un mobile
+        document.write('<p style="text-align: center; font-size: 18px; color: red;">Ce contenu n\'est pas disponible sur mobile.</p>');
+    } else {
+        var script = document.createElement('script');
+        script.src = "script-a-bloquer.js"; // Remplace avec le chemin de ton script
+        document.head.appendChild(script);
+    }
+
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
