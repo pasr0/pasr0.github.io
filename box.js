@@ -10,47 +10,58 @@ let velocityY = 0;
 let gravity = 0.3;
 let bounceFactor = 0.8;
 let touchStartX, touchStartY;
-let canvas; // Stocker la référence au canvas
+let lastTime = 0;
+let mouseOverCube = false;
 
 function getColors() {
-    let bodyStyles = window.getComputedStyle(document.body);
-    return {
-        background: bodyStyles.backgroundColor || "#ffffff",
-        text: bodyStyles.color || "#000000"
-    };
+    const backgroundColor = window.getComputedStyle(document.body).backgroundColor;
+    const textColor = window.getComputedStyle(document.body).color;
+    return { background: backgroundColor, text: textColor };
 }
 
 function setup() {
-    canvas = createCanvas(windowWidth, windowHeight, WEBGL);
-    canvas.position(0, 0);
-    canvas.style("pointer-events", "none"); // Empêche le canvas de bloquer la navigation
-    canvas.style("z-index", "-1"); // Met le canvas en arrière-plan
-
-    adjustCanvasSize();
-    updateColors();
+    createCanvas(windowWidth, windowHeight, WEBGL);
     prevMouseX = mouseX;
     prevMouseY = mouseY;
+    const colors = getColors();
+    cubeFillColor = colors.background;
+    cubeStrokeColor = colors.text;
+    cubeSize = min(width, height) * 0.2;
     offsetX = 0;
-    offsetY = -height * 0.2;
+    offsetY = -height * 0.5;
+    lastTime = millis();
 }
 
 function draw() {
-    background(220);
-
+    
     ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
-    translate(0, 0, 0);
+    translate(0, -height * 0.1, 0);
 
-    updateColors();
+    const colors = getColors();
+    cubeFillColor = colors.background;
+    cubeStrokeColor = colors.text;
+
     fill(cubeFillColor);
     stroke(cubeStrokeColor);
     strokeWeight(2);
 
     translate(offsetX, offsetY, 0);
 
+    let currentTime = millis();
+    let deltaTime = (currentTime - lastTime) / 1000.0; // Temps écoulé en secondes
+    lastTime = currentTime;
+
+    let rotationSpeed = TWO_PI / 5; // 1 tour complet en 5 secondes
+    angleX += rotationSpeed * deltaTime;
+    angleY += rotationSpeed * deltaTime;
+
     let deltaX = mouseX - prevMouseX;
     let deltaY = mouseY - prevMouseY;
-    angleX += deltaY * 0.01;
-    angleY += deltaX * 0.01;
+
+    if (dragging) {
+        angleX += deltaY * 0.01;
+        angleY += deltaX * 0.01;
+    }
 
     rotateX(angleX);
     rotateY(angleY);
@@ -71,10 +82,15 @@ function draw() {
 
     prevMouseX = mouseX;
     prevMouseY = mouseY;
+
+    // Vérifier si la souris est au-dessus du cube
+    checkMouseOverCube();
 }
 
 function mousePressed() {
-    dragging = true;
+    if (mouseOverCube) {
+        dragging = true;
+    }
 }
 
 function mouseDragged() {
@@ -88,11 +104,24 @@ function mouseReleased() {
     dragging = false;
 }
 
-function touchStarted(event) {
-    if (event.target.tagName !== 'CANVAS') return true; 
-    dragging = true;
-    touchStartX = touches[0].x;
-    touchStartY = touches[0].y;
+// Vérifie si la souris est sur le cube (approximation en 2D)
+function checkMouseOverCube() {
+    let screenPos = createVector(width / 2 + offsetX, height / 2 + offsetY);
+    let cubeScreenSize = cubeSize / 2;
+    mouseOverCube = (
+        mouseX > screenPos.x - cubeScreenSize &&
+        mouseX < screenPos.x + cubeScreenSize &&
+        mouseY > screenPos.y - cubeScreenSize &&
+        mouseY < screenPos.y + cubeScreenSize
+    );
+}
+
+function touchStarted() {
+    if (mouseOverCube) {
+        dragging = true;
+        touchStartX = touches[0].x;
+        touchStartY = touches[0].y;
+    }
     return false;
 }
 
@@ -115,21 +144,7 @@ function touchEnded() {
     return false;
 }
 
-function adjustCanvasSize() {
-    if (window.innerWidth < 760) {
-        resizeCanvas(window.innerWidth * 0.8, window.innerHeight * 0.6, WEBGL);
-    } else {
-        resizeCanvas(windowWidth, windowHeight, WEBGL);
-    }
-    cubeSize = min(width, height) * 0.2;
-}
-
-function updateColors() {
-    let colors = getColors();
-    cubeFillColor = colors.background;
-    cubeStrokeColor = colors.text;
-}
-
 function windowResized() {
-    adjustCanvasSize();
+    resizeCanvas(windowWidth, windowHeight);
+    cubeSize = min(width, height) * 0.2;
 }
