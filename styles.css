@@ -264,6 +264,20 @@ nav {
   display: none;
 }
 
+#mobile-message {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: black;
+    color: white;
+    padding: 5px;
+    display: none;
+    padding: 20px;
+}
+
+
 ul {
   list-style-type: none;
   color: black;
