@@ -1,14 +1,14 @@
-if (window.innerWidth <= 768) {
+//if (window.innerWidth <= 768) {
     // Bloque l'exécution du script et affiche un message centré
-    document.body.innerHTML = '<div id="mobile-message">Ce contenu n\'est pas disponible sur mobile.</div>';
-    document.body.style.display = "flex";
-    document.body.style.justifyContent = "center";
-    document.body.style.alignItems = "center";
-    document.body.style.height = "100vh";
-    document.body.style.textAlign = "center";
-    document.body.style.fontSize = "18px";
-    document.body.style.color = "red";
-} else {
+    //document.body.innerHTML = '<div id="mobile-message">Ce contenu n\'est pas disponible sur mobile.</div>';
+   // document.body.style.display = "flex";
+   // document.body.style.justifyContent = "center";
+   // document.body.style.alignItems = "center";
+  // document.body.style.height = "100vh";
+   // document.body.style.textAlign = "center";
+  //  document.body.style.fontSize = "18px";
+  //  document.body.style.color = "red";
+//} else {
     let angleX = 0;
     let angleY = 0;
     let offsetX = 0;
