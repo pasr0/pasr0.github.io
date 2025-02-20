@@ -1,7 +1,9 @@
-// Bloquer l'exécution du script sur mobile
-if (window.innerWidth <= 768) { // Si l'écran est un mobile
-    document.write('<p style="text-align: center; font-size: 18px; color: red;">Ce contenu n\'est pas disponible sur mobile.</p>');
+if (window.innerWidth <= 768) {
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("mobile-message").style.display = "block";
+    });
 } else {
+    // Ton script du cube commence ici
     let angleX = 0;
     let angleY = 0;
     let offsetX = 0;
