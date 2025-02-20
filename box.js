@@ -1,9 +1,14 @@
 if (window.innerWidth <= 768) {
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("mobile-message").style.display = "block";
-    });
+    // Bloque l'exécution du script et affiche un message centré
+    document.body.innerHTML = '<div id="mobile-message">Ce contenu n\'est pas disponible sur mobile.</div>';
+    document.body.style.display = "flex";
+    document.body.style.justifyContent = "center";
+    document.body.style.alignItems = "center";
+    document.body.style.height = "100vh";
+    document.body.style.textAlign = "center";
+    document.body.style.fontSize = "18px";
+    document.body.style.color = "red";
 } else {
-    // Ton script du cube commence ici
     let angleX = 0;
     let angleY = 0;
     let offsetX = 0;
@@ -15,7 +20,6 @@ if (window.innerWidth <= 768) {
     let velocityY = 0;
     let gravity = 0.3;
     let bounceFactor = 0.8;
-    let touchStartX, touchStartY; // Position de départ du toucher
 
     function getColors() {
         const backgroundColor = window.getComputedStyle(document.body).backgroundColor;
@@ -24,18 +28,27 @@ if (window.innerWidth <= 768) {
     }
 
     function setup() {
-        createCanvas(windowWidth, windowHeight, WEBGL);
+        let canvas = createCanvas(windowWidth, windowHeight, WEBGL);
+        canvas.style("position", "absolute");
+        canvas.style("top", "0");
+        canvas.style("left", "0");
+        canvas.style("z-index", "-1"); // Assure que le canvas est en arrière-plan
+
         prevMouseX = mouseX;
         prevMouseY = mouseY;
+
         const colors = getColors();
         cubeFillColor = colors.background;
         cubeStrokeColor = colors.text;
         cubeSize = min(width, height) * 0.2;
+
         offsetX = 0;
         offsetY = -height * 0.5;
     }
 
     function draw() {
+        background(0, 0); // Fond transparent
+
         ortho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
         translate(0, -height * 0.1, 0);
 
@@ -48,9 +61,6 @@ if (window.innerWidth <= 768) {
         strokeWeight(2);
 
         translate(offsetX, offsetY, 0);
-
-        angleX += 0.01;
-        angleY += 0.01;
 
         let deltaX = mouseX - prevMouseX;
         let deltaY = mouseY - prevMouseY;
@@ -91,33 +101,6 @@ if (window.innerWidth <= 768) {
 
     function mouseReleased() {
         dragging = false;
-    }
-
-    // Support tactile
-    function touchStarted() {
-        dragging = true;
-        touchStartX = touches[0].x;
-        touchStartY = touches[0].y;
-        return false;
-    }
-
-    function touchMoved() {
-        if (dragging && touches.length > 0) {
-            let touchX = touches[0].x;
-            let touchY = touches[0].y;
-
-            offsetX += (touchX - touchStartX);
-            offsetY += (touchY - touchStartY);
-
-            touchStartX = touchX;
-            touchStartY = touchY;
-        }
-        return false;
-    }
-
-    function touchEnded() {
-        dragging = false;
-        return false;
     }
 
     function windowResized() {
