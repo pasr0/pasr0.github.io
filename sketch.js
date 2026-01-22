@@ -7,7 +7,7 @@ let connections;
 // --- CONFIGURATION PEERJS (COMMUNICATION) ---
 let peer;
 let conn; // La connexion active avec le téléphone
-const HOST_ID = "123"; // ID Unique pour se retrouver
+const HOST_ID = "biometral-host-unique-id-2026"; // ID Unique pour se retrouver
 
 // --- VARIABLES TEXTE & COMPTEUR ---
 let globalCaptureCount = 1;
