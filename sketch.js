@@ -416,7 +416,7 @@ function drawAgitationScore(box, value) {
   text("Mvt: " + Math.floor(value), x + box.w/2, y);
 }
 
-// --- NOUVELLE FONCTION DE CAPTURE ---
+// --- MODIFICATION DE LA FONCTION DE CAPTURE ---
 function takeSnapshot(box) {
   let padding = 50;
   let x = max(0, box.x - padding);
@@ -425,26 +425,36 @@ function takeSnapshot(box) {
   let h = min(height - y, box.h + padding * 2);
 
   if (w > 0 && h > 0) {
-    // 1. Capture visuelle (crop)
+    // 1. Capture visuelle
     let pg = createGraphics(w, h);
     pg.image(video, 0, 0, w, h, x, y, w, h);
-    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.9);
+    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.8); // 0.8 pour alléger un peu le fichier
     pg.remove();
 
     // 2. Génération des données TEXTUELLES
     let randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
 
-    // 3. Envoi du PAQUET COMPLET (Image + Texte)
-    channel.postMessage({
+    // 3. Préparation du paquet
+    let dataToSend = {
         image: dataUrl,
         id: "Individu " + idNum,
-        adj: randomAdj
-    });
+        adj: randomAdj,
+        timestamp: Date.now() // Important pour savoir si c'est une nouvelle image
+    };
 
-    console.log(`Scan envoyé : Individu ${idNum} - ${randomAdj}`);
+    // 4. ENVOI AU SERVEUR (PHP)
+    fetch('server.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend)
+    })
+    .then(response => console.log("Données envoyées au serveur !"))
+    .catch(error => console.error("Erreur d'envoi :", error));
+
+    console.log(`Scan : Individu ${idNum} - ${randomAdj}`);
     
-    // 4. Incrémentation du compteur
+    // 5. Incrémentation
     globalCaptureCount++;
   }
 }
