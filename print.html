@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biometral - Mobile</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
     <style>
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f0f0f0;
             margin: 0;
-            /* Pour centrer sur mobile */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -21,16 +22,16 @@
         #card-container {
             background: white;
             width: 100%;
-            max-width: 600px; /* Max largeur pour mobile */
+            max-width: 600px;
             padding: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: none; /* Caché au départ */
+            display: none; 
             flex-direction: column;
             box-sizing: border-box;
         }
 
         header h1 {
-            font-size: 40px; /* Plus petit pour mobile */
+            font-size: 40px;
             font-weight: bold;
             margin: 0;
             line-height: 0.9;
@@ -47,7 +48,6 @@
 
         .photo-wrapper {
             width: 100%;
-            /* Ratio carré ou portrait pour mobile */
             aspect-ratio: 1 / 1; 
             background-color: #eee;
             margin-bottom: 20px;
@@ -70,23 +70,16 @@
             color: black;
         }
 
-        .meta-right {
-            font-weight: bold;
-        }
-
-        .bottom-line {
-            width: 100%;
-            height: 2px;
-            background-color: black;
-        }
+        .meta-right { font-weight: bold; }
+        .bottom-line { width: 100%; height: 2px; background-color: black; }
 
         #waiting-screen {
             text-align: center;
             color: #888;
             margin-top: 40vh;
         }
+        #status-text { margin-top: 10px; font-size: 14px; }
         .loader { font-size: 40px; animation: blink 1.5s infinite; }
-        
         @keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
     </style>
 </head>
@@ -94,7 +87,7 @@
 
     <div id="waiting-screen">
         <div class="loader">●</div>
-        <p>En attente de scan...</p>
+        <div id="status-text">Connexion à l'ordinateur...</div>
     </div>
 
     <div id="card-container">
@@ -118,30 +111,45 @@
     <script>
         const cardContainer = document.getElementById('card-container');
         const waitingScreen = document.getElementById('waiting-screen');
+        const statusText = document.getElementById('status-text');
         const imgElement = document.getElementById('scan-image');
         const idElement = document.getElementById('text-id');
         const adjElement = document.getElementById('text-adj');
 
-        let lastTimestamp = 0;
+        // L'ID doit correspondre exactement à celui dans sketch.js
+        const HOST_ID = "biometral-host-unique-id-2026"; 
 
-        // Fonction qui vérifie le serveur
-        async function checkServer() {
-            try {
-                // On ajoute ?t=... pour éviter que le téléphone garde l'ancien fichier en mémoire (cache)
-                const response = await fetch('last_scan.json?t=' + Date.now());
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Si le timestamp est différent, c'est une nouvelle image !
-                    if (data.timestamp && data.timestamp !== lastTimestamp) {
-                        lastTimestamp = data.timestamp;
-                        updateCard(data);
-                    }
-                }
-            } catch (error) {
-                // Pas de fichier encore créé, on attend...
-            }
+        const peer = new Peer(); // Le mobile crée son propre ID aléatoire
+
+        peer.on('open', (id) => {
+            statusText.innerText = "Recherche de l'hôte...";
+            connectToHost();
+        });
+
+        peer.on('error', (err) => {
+            statusText.innerText = "Erreur: " + err.type;
+        });
+
+        function connectToHost() {
+            // On se connecte à l'ordinateur
+            const conn = peer.connect(HOST_ID);
+
+            conn.on('open', () => {
+                statusText.innerText = "✅ Connecté ! En attente de scan...";
+            });
+
+            // Quand on reçoit des données (Image + Texte)
+            conn.on('data', (data) => {
+                console.log("Données reçues !");
+                updateCard(data);
+            });
+            
+            // Si l'ordi ferme la page
+            conn.on('close', () => {
+                statusText.innerText = "⚠️ Connexion perdue.";
+                waitingScreen.style.display = 'block';
+                cardContainer.style.display = 'none';
+            });
         }
 
         function updateCard(data) {
@@ -152,10 +160,6 @@
             idElement.textContent = data.id;
             adjElement.textContent = data.adj;
         }
-
-        // On vérifie toutes les 1 seconde (1000 ms)
-        setInterval(checkServer, 1000);
-
     </script>
 </body>
 </html>
