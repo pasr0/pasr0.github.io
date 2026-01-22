@@ -4,10 +4,14 @@ let poses = [];
 let faces = [];
 let connections;
 
-// --- CONFIGURATION PEERJS (COMMUNICATION) ---
+// --- POLICES D'ÉCRITURE ---
+let fontMedium, fontRegular;
+
+// --- CONFIGURATION RÉSEAU ---
 let peer;
-let conn; // La connexion active avec le téléphone
-const HOST_ID = "biometral-host-unique-id-2026"; // ID Unique pour se retrouver
+let conn; 
+const HOST_ID = "biometral-grg-2026"; 
+let networkStatus = "🔴 Déconnecté"; 
 
 // --- VARIABLES TEXTE & COMPTEUR ---
 let globalCaptureCount = 1;
@@ -50,8 +54,13 @@ let faceOptions = { maxFaces: 4, refineLandmarks: false, flipped: false, minConf
 let expressionIndices = [1, 13, 14, 33, 263, 152];
 
 function preload() {
+  // Chargement des modèles
   bodyPose = ml5.bodyPose(bodyOptions);
   faceMesh = ml5.faceMesh(faceOptions);
+  
+  // CHARGEMENT DES POLICES (On utilise les .ttf pour p5.js)
+  fontMedium = loadFont('EaseDisplayTRIAL-Medium.ttf');
+  fontRegular = loadFont('EaseDisplayTRIAL-Regular.ttf');
 }
 
 function setup() {
@@ -60,25 +69,28 @@ function setup() {
   video.size(width, height);
   video.hide();
 
-  // --- INITIALISATION PEERJS ---
-  // On crée l'hôte
-  peer = new Peer(HOST_ID);
+  // PeerJS setup
+  peer = new Peer(HOST_ID, { debug: 2 });
   
   peer.on('open', (id) => {
-      console.log('✅ Serveur P2P prêt. ID:', id);
+      console.log('ID Serveur:', id);
+      networkStatus = "🟠 En attente du mobile... (ID: " + id + ")";
   });
   
   peer.on('connection', (c) => {
-      console.log('📱 Nouveau téléphone connecté !');
-      conn = c; // On garde la connexion en mémoire
+      conn = c;
+      networkStatus = "🟢 Mobile connecté !";
   });
 
   peer.on('error', (err) => {
-      console.error('Erreur PeerJS:', err);
-      // Si l'ID est déjà pris (refresh de page), on essaye de se reconnecter
-      if(err.type === 'unavailable-id') {
-         console.log("ID déjà pris, attente...");
-      }
+      console.error(err);
+      networkStatus = "❌ Erreur: " + err.type;
+      if(err.type === 'unavailable-id') networkStatus = "❌ ID déjà pris. Rechargez.";
+  });
+
+  peer.on('disconnected', () => {
+      networkStatus = "⚠️ Déconnecté.";
+      peer.reconnect();
   });
 
   bodyPose.detectStart(video, results => poses = results);
@@ -89,7 +101,9 @@ function setup() {
   styleButton();
   centerButton();
   startButton.mousePressed(triggerLoading);
-  textFont('Arial');
+  
+  // Par défaut Arial, on changera pour les titres
+  textFont('Arial'); 
 }
 
 function windowResized() {
@@ -103,6 +117,7 @@ function centerButton() {
 }
 
 function styleButton() {
+  // Le bouton reste en Arial (info/interface)
   startButton.size(240, 50);
   startButton.style('font-family', 'Arial, sans-serif');
   startButton.style('font-size', '18px');
@@ -150,10 +165,14 @@ function drawSharedHeader(specificSubtitle) {
   textAlign(LEFT, TOP);
   fill(0);
   noStroke();
-  textStyle(BOLD);
+  
+  // TITRE : EaseDisplay Medium
+  textFont(fontMedium);
   textSize(48); 
   text("Biometral", 50, 50);
-  textStyle(NORMAL);
+
+  // SOUS-TITRE : EaseDisplay Regular
+  textFont(fontRegular);
   textSize(20); 
   let sub = specificSubtitle || "Workshop GRG 2026";
   text(sub, 50, 100); 
@@ -193,12 +212,18 @@ function drawLoadingScene() {
   textAlign(CENTER, CENTER);
   fill(0);
   noStroke();
-  textStyle(BOLD);
+  
+  // Titre Chargement : EaseDisplay Medium
+  textFont(fontMedium);
   textSize(36);
   text("Chargement du système", centerX, centerY - 50);
-  textStyle(NORMAL);
+  
+  // Pourcentage : Arial (Info technique)
+  textFont('Arial');
   textSize(16);
   text(Math.floor(progress * 100) + "%", centerX, centerY + 50);
+  
+  // Barre
   let barWidth = 300;
   let barHeight = 10; 
   let barX = centerX - barWidth / 2;
@@ -232,10 +257,14 @@ function drawPrepScene() {
   textAlign(CENTER, CENTER);
   fill(0);
   noStroke();
-  textStyle(BOLD);
+  
+  // Compte à rebours : EaseDisplay Medium (Gros titre)
+  textFont(fontMedium);
   textSize(200);
   text(remaining, width/2, height/2);
-  textStyle(NORMAL);
+  
+  // Instruction : EaseDisplay Regular (Sous-titre)
+  textFont(fontRegular);
   textSize(24);
   text("Placez-vous dans la zone", width/2, height/2 + 120);
 }
@@ -247,36 +276,48 @@ function drawGameLogic() {
   drawFaceBoxes(color(255, 255, 255, 180));
   drawSharedHeader("Scan en cours...");
   
-  if(conn) {
-     fill(0, 255, 0); circle(width-30, 30, 15); // Indicateur de connexion au téléphone
-  } else {
-     fill(255, 0, 0); circle(width-30, 30, 15);
-  }
+  // Status Réseau : Arial (Info technique)
+  textFont('Arial');
+  textSize(14);
+  textAlign(RIGHT, TOP);
+  if(networkStatus.includes("🟢")) fill(0, 200, 0);
+  else if(networkStatus.includes("❌")) fill(255, 0, 0);
+  else fill(255, 165, 0);
+  text(networkStatus, width - 20, 20);
 
   if (gameState === "RED") {
-    textAlign(CENTER, CENTER);
-    fill(255, 0, 0);
-    noStroke();
-    textStyle(BOLD);
-    textSize(180);
-    text("Scan", width / 2, height / 2);
-    fill(255);
-    noStroke();
-    textStyle(NORMAL);
-    textSize(32); 
-    text("Détection de mouvement", width/2, height/2 + 100);
-    if (millis() - redLightStartTime < 1000) return;
-    for (let d of frameData) {
-        if (!accumulatedScores[d.faceIndex]) accumulatedScores[d.faceIndex] = 0;
-        if (d.score > 0) {
-            accumulatedScores[d.faceIndex] += d.score * 5;
-        }
-        if (faces.length === 1) {
-            drawSurvivalGauge(d.box, accumulatedScores[d.faceIndex]);
-        } else {
-            drawAgitationScore(d.box, accumulatedScores[d.faceIndex]);
-        }
-    }
+     textAlign(CENTER, CENTER);
+     fill(255, 0, 0);
+     noStroke();
+     
+     // "Scan" : EaseDisplay Medium
+     textFont(fontMedium);
+     textSize(180);
+     text("Scan", width / 2, height / 2);
+ 
+     fill(255);
+     noStroke();
+     
+     // "Détection..." : EaseDisplay Regular
+     textFont(fontRegular);
+     textSize(32); 
+     text("Détection de mouvement", width/2, height/2 + 100);
+ 
+     if (millis() - redLightStartTime < 1000) return;
+ 
+     for (let d of frameData) {
+         if (!accumulatedScores[d.faceIndex]) accumulatedScores[d.faceIndex] = 0;
+         if (d.score > 0) {
+             accumulatedScores[d.faceIndex] += d.score * 5;
+         }
+         // Jauges et scores restent en Arial (Info technique)
+         textFont('Arial'); 
+         if (faces.length === 1) {
+             drawSurvivalGauge(d.box, accumulatedScores[d.faceIndex]);
+         } else {
+             drawAgitationScore(d.box, accumulatedScores[d.faceIndex]);
+         }
+     }
   }
 }
 
@@ -286,13 +327,17 @@ function drawDebugOverlay() {
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
-  textStyle(BOLD);
+  
+  textFont(fontMedium);
   textSize(200);
   text("Debug", width/2, height/2);
+  
   fill(50);
   textAlign(LEFT, BOTTOM);
   textSize(18);
-  textStyle(NORMAL);
+  
+  // Infos techniques en Arial
+  textFont('Arial');
   let infoY = height - 50;
   text("FPS : " + Math.floor(frameRate()), 50, infoY);
   text("Visages détectés : " + faces.length, 250, infoY);
@@ -429,7 +474,9 @@ function drawSurvivalGauge(box, value) {
   noFill();
   rect(x, y, barWidth, barHeight);
   fill(255); noStroke();
-  textStyle(NORMAL);
+  
+  // Info jauge : Arial
+  textFont('Arial');
   textSize(14); textAlign(CENTER, BOTTOM); 
   text("Niveau d'alerte", x + barWidth/2, y - 5);
 }
@@ -439,13 +486,14 @@ function drawAgitationScore(box, value) {
   let y = box.y - 25;
   fill(255, 0, 0);
   noStroke();
-  textStyle(NORMAL);
+  
+  // Score : Arial
+  textFont('Arial');
   textSize(18); 
   textAlign(CENTER);
   text("Mvt: " + Math.floor(value), x + box.w/2, y);
 }
 
-// --- FONCTION CAPTURE ET ENVOI ---
 function takeSnapshot(box) {
   let padding = 50;
   let x = max(0, box.x - padding);
@@ -454,30 +502,25 @@ function takeSnapshot(box) {
   let h = min(height - y, box.h + padding * 2);
 
   if (w > 0 && h > 0) {
-    // 1. Capture de l'image
     let pg = createGraphics(w, h);
     pg.image(video, 0, 0, w, h, x, y, w, h);
-    // On compresse un peu (0.7) pour que l'envoi soit rapide
-    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.7); 
+    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.6); 
     pg.remove();
 
-    // 2. Génération texte
     let randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
 
-    // 3. ENVOI AU TÉLÉPHONE (Si connecté)
     if (conn && conn.open) {
         conn.send({
             image: dataUrl,
             id: "Individu " + idNum,
             adj: randomAdj
         });
-        console.log(`📡 Envoyé au mobile : Individu ${idNum}`);
+        console.log(`📡 Envoyé : Individu ${idNum}`);
     } else {
-        console.log("⚠️ Aucun mobile connecté, scan non envoyé.");
+        console.log("⚠️ Échec envoi : Mobile non connecté.");
     }
     
-    // 4. Incrémentation
     globalCaptureCount++;
   }
 }
