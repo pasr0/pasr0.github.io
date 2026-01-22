@@ -2,55 +2,79 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biometral - Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Biometral - Mobile Print</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     
     <style>
-        body {
+        /* --- CONFIGURATION GLOBALE POUR ÉPOUSER LE CONTENU --- */
+        body, html {
             font-family: 'Arial', sans-serif;
-            background-color: #f0f0f0;
+            background-color: white; /* Fond blanc pour l'impression */
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
+            padding: 0;
+            height: auto; /* La hauteur s'adapte au contenu */
+            min-height: 0; /* On retire la hauteur minimale forcée */
+            overflow-x: hidden; /* Évite le scroll horizontal */
         }
 
+        /* --- UI STATUS (Diagnostic) --- */
+        #status-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 5px; /* Plus fin */
+            text-align: center;
+            font-size: 12px;
+            color: white;
+            background: #333;
+            z-index: 100;
+            opacity: 0.8; /* Un peu transparent pour moins gêner */
+        }
+
+        /* --- LE CONTENEUR PRINCIPAL (RENVERSÉ ET COMPACT) --- */
         #card-container {
             background: white;
             width: 100%;
-            max-width: 600px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: none; 
-            flex-direction: column;
+            /* Pas de max-width, on prend tout l'écran */
+            padding: 15px; /* Padding réduit pour être plus compact */
             box-sizing: border-box;
+            display: none; /* Caché au départ */
+            flex-direction: column;
+            margin: 0;
+            
+            /* --- LA CLÉ DU RENVERSEMENT --- */
+            /* On tourne tout le bloc de 180 degrés */
+            transform: rotate(180deg);
+            transform-origin: center center;
+            /* ----------------------------- */
         }
 
+        /* --- EN-TÊTE COMPACT --- */
         header h1 {
-            font-size: 40px;
+            font-size: 32px; /* Un peu plus petit */
             font-weight: bold;
             margin: 0;
-            line-height: 0.9;
+            line-height: 1;
             letter-spacing: -1px;
             color: black;
         }
 
         header h2 {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: normal;
-            margin: 5px 0 15px 2px;
+            margin: 2px 0 10px 2px; /* Marges réduites */
             color: black;
         }
 
+        /* --- IMAGE CARRÉE --- */
         .photo-wrapper {
             width: 100%;
+            /* Force un ratio carré parfait */
             aspect-ratio: 1 / 1; 
             background-color: #eee;
-            margin-bottom: 20px;
+            margin-bottom: 15px; /* Marge réduite */
             overflow: hidden;
         }
 
@@ -61,33 +85,46 @@
             display: block;
         }
 
+        /* --- INFOS DU BAS --- */
         .meta-data {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 16px; /* Un peu plus petit */
+            margin-bottom: 15px;
             color: black;
         }
 
         .meta-right { font-weight: bold; }
         .bottom-line { width: 100%; height: 2px; background-color: black; }
 
+        /* --- ÉCRAN D'ATTENTE (Centré différemment maintenant) --- */
         #waiting-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
             color: #888;
-            margin-top: 40vh;
+            width: 80%;
         }
-        #status-text { margin-top: 10px; font-size: 14px; }
         .loader { font-size: 40px; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
+        
+        button {
+            margin-top: 20px; padding: 10px 20px; font-size: 16px;
+            background: black; color: white; border: none; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
+    <div id="status-bar">Initialisation...</div>
+
     <div id="waiting-screen">
         <div class="loader">●</div>
-        <div id="status-text">Connexion à l'ordinateur...</div>
+        <p>Connexion à l'ordinateur...</p>
+        <button onclick="window.location.reload()">Recharger si bloqué</button>
     </div>
 
     <div id="card-container">
@@ -95,70 +132,85 @@
             <h1>Biometral</h1>
             <h2>Workshop GRG 2026</h2>
         </header>
-
         <div class="photo-wrapper">
             <img id="scan-image" src="" alt="Scan">
         </div>
-
         <div class="meta-data">
             <div class="meta-left" id="text-id">...</div>
             <div class="meta-right" id="text-adj">...</div>
         </div>
-
         <div class="bottom-line"></div>
     </div>
 
     <script>
+        // --- CONFIGURATION ---
+        // Doit être le même ID que dans sketch.js
+        const HOST_ID = "biometral-grg-2026"; 
+        
+        const statusDiv = document.getElementById('status-bar');
         const cardContainer = document.getElementById('card-container');
         const waitingScreen = document.getElementById('waiting-screen');
-        const statusText = document.getElementById('status-text');
         const imgElement = document.getElementById('scan-image');
         const idElement = document.getElementById('text-id');
         const adjElement = document.getElementById('text-adj');
 
-        // L'ID doit correspondre exactement à celui dans sketch.js
-        const HOST_ID = "biometral-host-unique-id-2026"; 
+        function setStatus(msg, color) {
+            statusDiv.innerText = msg;
+            statusDiv.style.backgroundColor = color;
+        }
 
-        const peer = new Peer(); // Le mobile crée son propre ID aléatoire
+        const peer = new Peer(); 
 
-        peer.on('open', (id) => {
-            statusText.innerText = "Recherche de l'hôte...";
+        peer.on('open', (myId) => {
+            setStatus("ID Mobile OK. Recherche PC...", "#555");
             connectToHost();
         });
 
         peer.on('error', (err) => {
-            statusText.innerText = "Erreur: " + err.type;
+            setStatus("Erreur: " + err.type, "#d9534f");
+            console.error(err);
         });
 
         function connectToHost() {
-            // On se connecte à l'ordinateur
             const conn = peer.connect(HOST_ID);
 
             conn.on('open', () => {
-                statusText.innerText = "✅ Connecté ! En attente de scan...";
+                setStatus("✅ Connecté ! En attente de scan...", "#5cb85c");
+                waitingScreen.innerHTML = "<p>Prêt ! Le prochain scan apparaîtra ici, tête en bas.</p>";
             });
 
-            // Quand on reçoit des données (Image + Texte)
             conn.on('data', (data) => {
-                console.log("Données reçues !");
+                console.log("Données reçues");
                 updateCard(data);
             });
-            
-            // Si l'ordi ferme la page
+
             conn.on('close', () => {
-                statusText.innerText = "⚠️ Connexion perdue.";
+                setStatus("⚠️ Connexion perdue.", "#f0ad4e");
                 waitingScreen.style.display = 'block';
                 cardContainer.style.display = 'none';
             });
+            
+            setTimeout(() => {
+                if (!conn.open) {
+                    setStatus("⚠️ L'ordinateur ne répond pas. Vérifiez qu'il est lancé.", "#f0ad4e");
+                }
+            }, 5000);
         }
 
         function updateCard(data) {
+            // On cache l'écran d'attente
             waitingScreen.style.display = 'none';
+            // On affiche la carte
             cardContainer.style.display = 'flex';
-
+            
+            // On met à jour les infos
             imgElement.src = data.image;
             idElement.textContent = data.id;
             adjElement.textContent = data.adj;
+
+            // Petite astuce : on cache la barre de statut au moment de l'affichage 
+            // pour qu'elle ne gêne pas l'impression visuelle
+            statusDiv.style.display = 'none';
         }
     </script>
 </body>
