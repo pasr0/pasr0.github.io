@@ -4,10 +4,12 @@ let poses = [];
 let faces = [];
 let connections;
 
-// --- GESTION DU CANAL DE COMMUNICATION (NOUVEAU) ---
-const channel = new BroadcastChannel('biometral_channel');
+// --- CONFIGURATION PEERJS (COMMUNICATION) ---
+let peer;
+let conn; // La connexion active avec le téléphone
+const HOST_ID = "biometral-host-unique-id-2026"; // ID Unique pour se retrouver
 
-// --- VARIABLES TEXTE & COMPTEUR (NOUVEAU) ---
+// --- VARIABLES TEXTE & COMPTEUR ---
 let globalCaptureCount = 1;
 const adjectives = [
   "Agité·e", "Nerveux·se", "Tendu·e", "Fébrile", 
@@ -19,30 +21,30 @@ const adjectives = [
 // --- GESTION DES SCÈNES ---
 let currentScene = "HOME";
 
-// --- VARIABLES UI / NAVIGATION ---
+// --- VARIABLES UI ---
 let startButton;
 let loadingStartTime = 0;
 const loadingDuration = 3000; 
 let prepStartTime = 0;
 const prepDuration = 10; 
 
-// --- VARIABLES DU JEU ---
+// --- VARIABLES JEU ---
 let gameState = "GREEN";
 let nextStateTime = 0;
 let hasCaughtSomeone = false;
 let redLightStartTime = 0;
 
-// --- VARIABLES DEBUG (PAUSE) ---
+// --- VARIABLES DEBUG ---
 let isPaused = false;
 let pauseStartTime = 0;
 
-// --- REGLAGES DE DIFFICULTÉ ---
+// --- REGLAGES ---
 let noiseFilter = 1.2;
 let soloGaugeLimit = 500;
 let prevAllFacesKeypoints = [];
 let accumulatedScores = {};
 
-// --- CONFIGURATION ML5 ---
+// --- ML5 CONFIG ---
 let bodyOptions = { modelType: "MULTIPOSE_LIGHTNING", enableSmoothing: true, minConfidence: 0.2 };
 let faceOptions = { maxFaces: 4, refineLandmarks: false, flipped: false, minConfidence: 0.2 };
 let expressionIndices = [1, 13, 14, 33, 263, 152];
@@ -57,6 +59,27 @@ function setup() {
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
+
+  // --- INITIALISATION PEERJS ---
+  // On crée l'hôte
+  peer = new Peer(HOST_ID);
+  
+  peer.on('open', (id) => {
+      console.log('✅ Serveur P2P prêt. ID:', id);
+  });
+  
+  peer.on('connection', (c) => {
+      console.log('📱 Nouveau téléphone connecté !');
+      conn = c; // On garde la connexion en mémoire
+  });
+
+  peer.on('error', (err) => {
+      console.error('Erreur PeerJS:', err);
+      // Si l'ID est déjà pris (refresh de page), on essaye de se reconnecter
+      if(err.type === 'unavailable-id') {
+         console.log("ID déjà pris, attente...");
+      }
+  });
 
   bodyPose.detectStart(video, results => poses = results);
   faceMesh.detectStart(video, results => faces = results);
@@ -91,7 +114,7 @@ function styleButton() {
   startButton.style('font-weight', 'bold');
 }
 
-// --- LOGIQUE DE NAVIGATION ---
+// --- LOGIQUE NAVIGATION ---
 
 function triggerLoading() {
   currentScene = "LOADING";
@@ -122,7 +145,7 @@ function keyPressed() {
   }
 }
 
-// --- FONCTION D'EN-TÊTE UNIFIÉE ---
+// --- SHARED HEADER ---
 function drawSharedHeader(specificSubtitle) {
   textAlign(LEFT, TOP);
   fill(0);
@@ -136,8 +159,7 @@ function drawSharedHeader(specificSubtitle) {
   text(sub, 50, 100); 
 }
 
-// --- BOUCLE PRINCIPALE ---
-
+// --- DRAW LOOP ---
 function draw() {
   background(255);
 
@@ -224,6 +246,13 @@ function drawGameLogic() {
   drawSkeleton(color(255, 255, 255, 150));
   drawFaceBoxes(color(255, 255, 255, 180));
   drawSharedHeader("Scan en cours...");
+  
+  if(conn) {
+     fill(0, 255, 0); circle(width-30, 30, 15); // Indicateur de connexion au téléphone
+  } else {
+     fill(255, 0, 0); circle(width-30, 30, 15);
+  }
+
   if (gameState === "RED") {
     textAlign(CENTER, CENTER);
     fill(255, 0, 0);
@@ -307,7 +336,7 @@ function checkVerdict() {
   if (shouldSnap && faces[loserIndex]) {
        let face = faces[loserIndex];
        let box = getFaceBox(face);
-       takeSnapshot(box); // Appel de la nouvelle fonction
+       takeSnapshot(box); 
        hasCaughtSomeone = true;
   }
 }
@@ -416,7 +445,7 @@ function drawAgitationScore(box, value) {
   text("Mvt: " + Math.floor(value), x + box.w/2, y);
 }
 
-// --- MODIFICATION DE LA FONCTION DE CAPTURE ---
+// --- FONCTION CAPTURE ET ENVOI ---
 function takeSnapshot(box) {
   let padding = 50;
   let x = max(0, box.x - padding);
@@ -425,36 +454,30 @@ function takeSnapshot(box) {
   let h = min(height - y, box.h + padding * 2);
 
   if (w > 0 && h > 0) {
-    // 1. Capture visuelle
+    // 1. Capture de l'image
     let pg = createGraphics(w, h);
     pg.image(video, 0, 0, w, h, x, y, w, h);
-    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.8); // 0.8 pour alléger un peu le fichier
+    // On compresse un peu (0.7) pour que l'envoi soit rapide
+    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.7); 
     pg.remove();
 
-    // 2. Génération des données TEXTUELLES
+    // 2. Génération texte
     let randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
 
-    // 3. Préparation du paquet
-    let dataToSend = {
-        image: dataUrl,
-        id: "Individu " + idNum,
-        adj: randomAdj,
-        timestamp: Date.now() // Important pour savoir si c'est une nouvelle image
-    };
-
-    // 4. ENVOI AU SERVEUR (PHP)
-    fetch('server.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dataToSend)
-    })
-    .then(response => console.log("Données envoyées au serveur !"))
-    .catch(error => console.error("Erreur d'envoi :", error));
-
-    console.log(`Scan : Individu ${idNum} - ${randomAdj}`);
+    // 3. ENVOI AU TÉLÉPHONE (Si connecté)
+    if (conn && conn.open) {
+        conn.send({
+            image: dataUrl,
+            id: "Individu " + idNum,
+            adj: randomAdj
+        });
+        console.log(`📡 Envoyé au mobile : Individu ${idNum}`);
+    } else {
+        console.log("⚠️ Aucun mobile connecté, scan non envoyé.");
+    }
     
-    // 5. Incrémentation
+    // 4. Incrémentation
     globalCaptureCount++;
   }
 }
