@@ -7,54 +7,67 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     
     <style>
-        /* --- CONFIGURATION GLOBALE POUR ÉPOUSER LE CONTENU --- */
-        body, html {
-            font-family: 'Arial', sans-serif;
-            background-color: white; /* Fond blanc pour l'impression */
-            margin: 0;
-            padding: 0;
-            height: auto; /* La hauteur s'adapte au contenu */
-            min-height: 0; /* On retire la hauteur minimale forcée */
-            overflow-x: hidden; /* Évite le scroll horizontal */
+        /* --- DÉCLARATION DES POLICES --- */
+        @font-face {
+            font-family: 'EaseDisplay-Medium';
+            src: url('EaseDisplayTRIAL-Medium.woff') format('woff'),
+                 url('EaseDisplayTRIAL-Medium.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
         }
 
-        /* --- UI STATUS (Diagnostic) --- */
+        @font-face {
+            font-family: 'EaseDisplay-Regular';
+            src: url('EaseDisplayTRIAL-Regular.woff') format('woff'),
+                 url('EaseDisplayTRIAL-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        /* --- CONFIGURATION GLOBALE --- */
+        body, html {
+            font-family: 'Arial', sans-serif; /* Par défaut Arial pour les infos */
+            background-color: white; 
+            margin: 0;
+            padding: 0;
+            height: auto; 
+            min-height: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- BARRE DE STATUT (RESTE EN ARIAL) --- */
         #status-bar {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            padding: 5px; /* Plus fin */
+            padding: 5px;
             text-align: center;
             font-size: 12px;
             color: white;
             background: #333;
             z-index: 100;
-            opacity: 0.8; /* Un peu transparent pour moins gêner */
+            opacity: 0.8;
+            font-family: 'Arial', sans-serif; /* Explicitement Arial */
         }
 
-        /* --- LE CONTENEUR PRINCIPAL (RENVERSÉ ET COMPACT) --- */
+        /* --- CONTENEUR RENVERSÉ --- */
         #card-container {
             background: white;
             width: 100%;
-            /* Pas de max-width, on prend tout l'écran */
-            padding: 15px; /* Padding réduit pour être plus compact */
+            padding: 15px; 
             box-sizing: border-box;
-            display: none; /* Caché au départ */
+            display: none; 
             flex-direction: column;
             margin: 0;
-            
-            /* --- LA CLÉ DU RENVERSEMENT --- */
-            /* On tourne tout le bloc de 180 degrés */
             transform: rotate(180deg);
             transform-origin: center center;
-            /* ----------------------------- */
         }
 
-        /* --- EN-TÊTE COMPACT --- */
+        /* --- TITRES EN EASE DISPLAY --- */
         header h1 {
-            font-size: 32px; /* Un peu plus petit */
-            font-weight: bold;
+            font-family: 'EaseDisplay-Medium', sans-serif; /* POLICE CUSTOM */
+            font-size: 38px; /* Ajusté pour cette police */
             margin: 0;
             line-height: 1;
             letter-spacing: -1px;
@@ -62,43 +75,38 @@
         }
 
         header h2 {
-            font-size: 14px;
-            font-weight: normal;
-            margin: 2px 0 10px 2px; /* Marges réduites */
+            font-family: 'EaseDisplay-Regular', sans-serif; /* POLICE CUSTOM */
+            font-size: 16px;
+            margin: 5px 0 10px 2px;
             color: black;
         }
 
-        /* --- IMAGE CARRÉE --- */
+        /* --- IMAGE --- */
         .photo-wrapper {
             width: 100%;
-            /* Force un ratio carré parfait */
             aspect-ratio: 1 / 1; 
             background-color: #eee;
-            margin-bottom: 15px; /* Marge réduite */
+            margin-bottom: 15px; 
             overflow: hidden;
         }
 
-        #scan-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
+        #scan-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-        /* --- INFOS DU BAS --- */
+        /* --- INFOS INDIVIDU & ADJECTIF (RESTE EN ARIAL) --- */
         .meta-data {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            font-size: 16px; /* Un peu plus petit */
+            font-size: 16px;
             margin-bottom: 15px;
             color: black;
+            font-family: 'Arial', sans-serif; /* Explicitement Arial */
         }
 
         .meta-right { font-weight: bold; }
         .bottom-line { width: 100%; height: 2px; background-color: black; }
 
-        /* --- ÉCRAN D'ATTENTE (Centré différemment maintenant) --- */
+        /* --- ECRAN D'ATTENTE (ARIAL) --- */
         #waiting-screen {
             position: absolute;
             top: 50%;
@@ -107,6 +115,7 @@
             text-align: center;
             color: #888;
             width: 80%;
+            font-family: 'Arial', sans-serif;
         }
         .loader { font-size: 40px; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
@@ -114,6 +123,7 @@
         button {
             margin-top: 20px; padding: 10px 20px; font-size: 16px;
             background: black; color: white; border: none; cursor: pointer;
+            font-family: 'Arial', sans-serif;
         }
     </style>
 </head>
@@ -124,7 +134,7 @@
     <div id="waiting-screen">
         <div class="loader">●</div>
         <p>Connexion à l'ordinateur...</p>
-        <button onclick="window.location.reload()">Recharger si bloqué</button>
+        <button onclick="window.location.reload()">Recharger</button>
     </div>
 
     <div id="card-container">
@@ -143,8 +153,6 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        // Doit être le même ID que dans sketch.js
         const HOST_ID = "biometral-grg-2026"; 
         
         const statusDiv = document.getElementById('status-bar');
@@ -176,11 +184,10 @@
 
             conn.on('open', () => {
                 setStatus("✅ Connecté ! En attente de scan...", "#5cb85c");
-                waitingScreen.innerHTML = "<p>Prêt ! Le prochain scan apparaîtra ici, tête en bas.</p>";
+                waitingScreen.innerHTML = "<p>Prêt ! Le prochain scan apparaîtra ici.</p>";
             });
 
             conn.on('data', (data) => {
-                console.log("Données reçues");
                 updateCard(data);
             });
 
@@ -192,24 +199,17 @@
             
             setTimeout(() => {
                 if (!conn.open) {
-                    setStatus("⚠️ L'ordinateur ne répond pas. Vérifiez qu'il est lancé.", "#f0ad4e");
+                    setStatus("⚠️ L'ordinateur ne répond pas.", "#f0ad4e");
                 }
             }, 5000);
         }
 
         function updateCard(data) {
-            // On cache l'écran d'attente
             waitingScreen.style.display = 'none';
-            // On affiche la carte
             cardContainer.style.display = 'flex';
-            
-            // On met à jour les infos
             imgElement.src = data.image;
             idElement.textContent = data.id;
             adjElement.textContent = data.adj;
-
-            // Petite astuce : on cache la barre de statut au moment de l'affichage 
-            // pour qu'elle ne gêne pas l'impression visuelle
             statusDiv.style.display = 'none';
         }
     </script>
