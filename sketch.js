@@ -15,7 +15,7 @@ let networkStatus = "🔴 Déconnecté";
 
 // --- VARIABLES TEXTE & COMPTEUR ---
 let globalCaptureCount = 1;
-// Liste sans accents pour éviter les soucis dès la source, ou nettoyée à la volée
+// Liste sans accents
 const adjectives = [
   "Agite", "Nerveux", "Tendu", "Febrile", 
   "Inquiet", "Stresse", "Instable", "Impatient", 
@@ -44,27 +44,25 @@ let isPaused = false;
 let pauseStartTime = 0;
 
 // --- REGLAGES & DIFFICULTÉ ---
-// Note : Avec la normalisation, le noiseFilter est plus bas car c'est un % de la taille du visage
 let noiseFilter = 0.5; 
 let soloGaugeLimit = 500;
-let prevAllFacesKeypoints = [];
+let prevAllFacesKeypoints = []; // On va devoir bien gérer ce tableau
 let accumulatedScores = {};
 
 // --- ML5 CONFIG (LIMITÉ À 5) ---
 let bodyOptions = { 
     modelType: "MULTIPOSE_LIGHTNING", 
     enableSmoothing: true, 
-    minConfidence: 0.3, // Augmenté pour éviter les squelettes bugs de loin
-    maxPoses: 5         // Limite hard
+    minConfidence: 0.3,
+    maxPoses: 5 
 };
 let faceOptions = { 
-    maxFaces: 5,        // Limite hard
+    maxFaces: 5,
     refineLandmarks: false, 
     flipped: false, 
-    minConfidence: 0.3  // Augmenté pour éviter les faux visages
+    minConfidence: 0.3
 };
 
-// Points clés du visage pour le mouvement (Nez, Yeux, Bouche, Contours)
 let expressionIndices = [1, 13, 14, 33, 263, 152];
 
 function preload() {
@@ -76,39 +74,25 @@ function preload() {
 }
 
 function setup() {
+  // Optimisation: Utiliser P2D pour le rendu peut être plus stable graphiquement
   createCanvas(windowWidth, windowHeight);
+  
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
-  peer = new Peer(HOST_ID, { debug: 1 }); // Debug réduit
-  
-  peer.on('open', (id) => {
-      console.log('ID Serveur:', id);
-      networkStatus = "🟠 Attente mobile (" + id + ")";
-  });
-  
-  peer.on('connection', (c) => {
-      conn = c;
-      networkStatus = "🟢 Mobile connecté !";
-  });
+  // PeerJS setup avec gestion d'erreur améliorée
+  setupPeer();
 
-  peer.on('error', (err) => {
-      networkStatus = "❌ Erreur: " + err.type;
-      if(err.type === 'unavailable-id') networkStatus = "❌ ID pris. Rechargez.";
-  });
-
-  peer.on('disconnected', () => {
-      networkStatus = "⚠️ Déconnecté.";
-      peer.reconnect();
-  });
-
-  // Callbacks avec limitation stricte des tableaux (slice)
   bodyPose.detectStart(video, results => {
-      poses = results.slice(0, 5); // Sécurité supplémentaire
+      // Sécurité : Si results est null ou undefined, on vide
+      if(!results) poses = [];
+      else poses = results.slice(0, 5);
   });
+  
   faceMesh.detectStart(video, results => {
-      faces = results.slice(0, 5); // Sécurité supplémentaire
+      if(!results) faces = [];
+      else faces = results.slice(0, 5);
   });
   
   connections = bodyPose.getSkeleton();
@@ -121,6 +105,36 @@ function setup() {
   textFont('Arial'); 
 }
 
+function setupPeer() {
+    try {
+        if(peer) peer.destroy(); // Nettoyage si reconnexion
+        peer = new Peer(HOST_ID, { debug: 1 });
+        
+        peer.on('open', (id) => {
+            console.log('ID Serveur:', id);
+            networkStatus = "🟠 Attente mobile (" + id + ")";
+        });
+        
+        peer.on('connection', (c) => {
+            conn = c;
+            networkStatus = "🟢 Mobile connecté !";
+            // Gestion de la fermeture du côté mobile
+            conn.on('close', () => networkStatus = "🟠 Attente mobile...");
+        });
+
+        peer.on('error', (err) => {
+            networkStatus = "❌ " + err.type;
+            if(err.type === 'unavailable-id') networkStatus = "❌ ID pris. Rechargez.";
+            // Tentative de reconnexion auto après 3s si déconnecté
+            if(err.type === 'network' || err.type === 'disconnected') {
+                setTimeout(setupPeer, 3000);
+            }
+        });
+    } catch(e) {
+        console.error("Erreur PeerJS:", e);
+    }
+}
+
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   video.size(width, height);
@@ -128,7 +142,7 @@ function windowResized() {
 }
 
 function centerButton() {
-  startButton.position(width / 2 - 120, height / 2 - 25);
+  if(startButton) startButton.position(width / 2 - 120, height / 2 - 25);
 }
 
 function styleButton() {
@@ -143,15 +157,12 @@ function styleButton() {
   startButton.style('font-weight', 'bold');
 }
 
-// --- UTILITAIRE : SUPPRESSION ACCENTS ---
 function cleanText(str) {
     if(!str) return "";
-    // Remplace les caractères accentués par leur version simple
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 // --- LOGIQUE NAVIGATION ---
-
 function triggerLoading() {
   currentScene = "LOADING";
   startButton.hide();
@@ -171,9 +182,8 @@ function startGame() {
 function keyPressed() {
   if (currentScene === "GAME" && key === ' ') {
     isPaused = !isPaused;
-    if (isPaused) {
-      pauseStartTime = millis();
-    } else {
+    if (isPaused) pauseStartTime = millis();
+    else {
       let pauseDuration = millis() - pauseStartTime;
       nextStateTime += pauseDuration;
       if(gameState === "RED") redLightStartTime += pauseDuration;
@@ -181,33 +191,19 @@ function keyPressed() {
   }
 }
 
-// --- SHARED HEADER ---
-function drawSharedHeader(specificSubtitle) {
-  textAlign(LEFT, TOP);
-  fill(0);
-  noStroke();
-  
-  // TITRE : EaseDisplay Medium (SANS ACCENTS)
-  textFont(fontMedium);
-  textSize(48); 
-  text(cleanText("Biometral"), 50, 50);
-
-  // SOUS-TITRE : EaseDisplay Regular (SANS ACCENTS)
-  textFont(fontRegular);
-  textSize(20); 
-  let sub = specificSubtitle || "Workshop GRG 2026";
-  text(cleanText(sub), 50, 100); 
-}
-
-// --- DRAW LOOP ---
+// --- RENDU (DRAW) OPTIMISÉ ---
 function draw() {
   background(255);
 
+  // Sécurité: Si la vidéo n'est pas prête, on ne dessine rien pour éviter les erreurs
+  if (!video.loadedmetadata) return;
+
   if (currentScene === "HOME") {
-    drawHomeScene();
+    drawSharedHeader();
   } else if (currentScene === "LOADING") {
     drawLoadingScene();
   } else if (currentScene === "PREP") {
+    // Optimisation : dessiner l'image directement sans passer par des buffers intermédiaires
     image(video, 0, 0, width, height);
     drawPrepScene();
   } else if (currentScene === "GAME") {
@@ -220,8 +216,19 @@ function draw() {
   }
 }
 
-function drawHomeScene() {
-  drawSharedHeader();
+function drawSharedHeader(specificSubtitle) {
+  textAlign(LEFT, TOP);
+  fill(0);
+  noStroke();
+  
+  textFont(fontMedium);
+  textSize(48); 
+  text(cleanText("Biometral"), 50, 50);
+
+  textFont(fontRegular);
+  textSize(20); 
+  let sub = specificSubtitle || "Workshop GRG 2026";
+  text(cleanText(sub), 50, 100); 
 }
 
 function drawLoadingScene() {
@@ -230,9 +237,9 @@ function drawLoadingScene() {
   let progress = constrain(elapsed / loadingDuration, 0, 1);
   let centerX = width / 2;
   let centerY = height / 2;
+  
   textAlign(CENTER, CENTER);
-  fill(0);
-  noStroke();
+  fill(0); noStroke();
   
   textFont(fontMedium);
   textSize(36);
@@ -242,39 +249,34 @@ function drawLoadingScene() {
   textSize(16);
   text(Math.floor(progress * 100) + "%", centerX, centerY + 50);
   
-  let barWidth = 300;
-  let barHeight = 10; 
-  let barX = centerX - barWidth / 2;
-  let barY = centerY;
-  noStroke();
-  fill(220);
-  rect(barX, barY, barWidth, barHeight);
+  let barWidth = 300; let barHeight = 10; 
+  let barX = centerX - barWidth / 2; let barY = centerY;
+  
+  fill(220); rect(barX, barY, barWidth, barHeight);
   let currentFillWidth = barWidth * progress;
-  for (let i = 0; i < currentFillWidth; i++) {
-    let inter = map(i, 0, barWidth, 0, 1);
-    let c = lerpColor(color(100), color(0), inter);
-    stroke(c);
-    line(barX + i, barY, barX + i, barY + barHeight);
-  }
+  
+  stroke(50);
+  line(barX, barY + barHeight/2, barX + currentFillWidth, barY + barHeight/2);
   noStroke();
-  if (progress >= 1.0) {
-    triggerPrep();
-  }
+
+  if (progress >= 1.0) triggerPrep();
 }
 
 function drawPrepScene() {
   fill(255, 255, 255, 100);
   rect(0,0,width,height);
   drawSharedHeader("Initialisation des capteurs...");
+  
   let elapsed = (millis() - prepStartTime) / 1000;
   let remaining = Math.ceil(prepDuration - elapsed);
+  
   if (remaining <= 0) {
     startGame();
     return;
   }
+  
   textAlign(CENTER, CENTER);
-  fill(0);
-  noStroke();
+  fill(0); noStroke();
   
   textFont(fontMedium);
   textSize(200);
@@ -287,15 +289,20 @@ function drawPrepScene() {
 
 function drawGameLogic() {
   checkGameState();
-  let frameData = analyzeMovements();
+  
+  // Analyse seulement si des visages sont détectés pour économiser CPU
+  let frameData = [];
+  if (faces.length > 0) {
+      frameData = analyzeMovements();
+  }
+
+  // Dessin des overlays
   drawSkeleton(color(255, 255, 255, 150));
   drawFaceBoxes(color(255, 255, 255, 180));
   drawSharedHeader("Scan en cours...");
   
-  // Status Réseau (Arial)
-  textFont('Arial');
-  textSize(14);
-  textAlign(RIGHT, TOP);
+  // Status Réseau
+  textFont('Arial'); textSize(14); textAlign(RIGHT, TOP);
   if(networkStatus.includes("🟢")) fill(0, 200, 0);
   else if(networkStatus.includes("❌")) fill(255, 0, 0);
   else fill(255, 165, 0);
@@ -303,28 +310,21 @@ function drawGameLogic() {
 
   if (gameState === "RED") {
      textAlign(CENTER, CENTER);
-     fill(255, 0, 0);
-     noStroke();
+     fill(255, 0, 0); noStroke();
      
-     textFont(fontMedium);
-     textSize(180);
+     textFont(fontMedium); textSize(180);
      text("Scan", width / 2, height / 2);
  
-     fill(255);
-     noStroke();
-     
-     textFont(fontRegular);
-     textSize(32); 
+     fill(255); noStroke();
+     textFont(fontRegular); textSize(32); 
      text(cleanText("Detection de mouvement"), width/2, height/2 + 100);
  
      if (millis() - redLightStartTime < 1000) return;
  
      for (let d of frameData) {
          if (!accumulatedScores[d.faceIndex]) accumulatedScores[d.faceIndex] = 0;
-         
-         // On augmente le score uniquement si mouvement significatif
          if (d.score > 0) {
-             accumulatedScores[d.faceIndex] += d.score * 8; // Multiplicateur ajusté
+             accumulatedScores[d.faceIndex] += d.score * 8;
          }
          
          textFont('Arial'); 
@@ -340,22 +340,16 @@ function drawGameLogic() {
 function drawDebugOverlay() {
   background(255, 255, 255, 220);
   drawSharedHeader("Mode maintenance");
-  fill(0);
-  noStroke();
-  textAlign(CENTER, CENTER);
+  fill(0); noStroke(); textAlign(CENTER, CENTER);
   
-  textFont(fontMedium);
-  textSize(200);
+  textFont(fontMedium); textSize(200);
   text("Debug", width/2, height/2);
   
-  fill(50);
-  textAlign(LEFT, BOTTOM);
-  textSize(18);
-  
-  textFont('Arial');
+  fill(50); textAlign(LEFT, BOTTOM); textSize(18); textFont('Arial');
   let infoY = height - 50;
   text("FPS : " + Math.floor(frameRate()), 50, infoY);
-  text("Visages : " + faces.length + " / Squelettes : " + poses.length, 250, infoY);
+  text("Visages : " + faces.length, 250, infoY);
+  
   drawSkeleton(color(0, 0, 0, 50));
   drawFaceBoxes(color(0, 0, 0, 50));
 }
@@ -367,9 +361,9 @@ function setNextState(newState) {
   gameState = newState;
   hasCaughtSomeone = false;
   accumulatedScores = {};
-  if (newState === "GREEN") {
-    nextStateTime = millis() + random(2000, 5000);
-  } else {
+  
+  if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
+  else {
     nextStateTime = millis() + random(5000, 9000);
     redLightStartTime = millis();
   }
@@ -379,6 +373,7 @@ function checkVerdict() {
   let maxScore = 0;
   let loserIndex = -1;
   let playerCount = 0;
+  
   for (let index in accumulatedScores) {
     playerCount++;
     if (accumulatedScores[index] > maxScore) {
@@ -386,40 +381,44 @@ function checkVerdict() {
       loserIndex = index;
     }
   }
+  
   let shouldSnap = false;
   if (playerCount === 1) {
       if (maxScore > soloGaugeLimit) shouldSnap = true;
   } else {
-      if (maxScore > 50) shouldSnap = true; // Seuil multijoueur
+      if (maxScore > 50) shouldSnap = true;
   }
-  // Vérification de sécurité pour éviter crash si le visage est perdu juste au moment du verdict
+  
+  // VERIFICATION CRITIQUE : Est-ce que le visage existe encore ?
   if (shouldSnap && faces[loserIndex]) {
-       let face = faces[loserIndex];
-       let box = getFaceBox(face);
-       takeSnapshot(box); 
-       hasCaughtSomeone = true;
+       try {
+           let face = faces[loserIndex];
+           let box = getFaceBox(face);
+           takeSnapshot(box); 
+           hasCaughtSomeone = true;
+       } catch(e) {
+           console.error("Erreur capture", e);
+       }
   }
 }
 
 function checkGameState() {
   if (millis() > nextStateTime) {
-    if (gameState === "GREEN") {
-      setNextState("RED");
-    } else {
-      setNextState("GREEN");
-    }
+    if (gameState === "GREEN") setNextState("RED");
+    else setNextState("GREEN");
   }
 }
 
 function drawSkeleton(col) {
-  stroke(col); strokeWeight(2); // Trait un peu plus visible
+  if(!poses) return; // Sécurité
+  stroke(col); strokeWeight(2);
   for (let i = 0; i < poses.length; i++) {
     let pose = poses[i];
+    if(!pose.keypoints) continue;
     for (let j = 0; j < connections.length; j++) {
       let pointA = pose.keypoints[connections[j][0]];
       let pointB = pose.keypoints[connections[j][1]];
-      // Augmentation du seuil de confiance ici aussi pour éviter les bugs
-      if (pointA.confidence > 0.3 && pointB.confidence > 0.3) {
+      if (pointA && pointB && pointA.confidence > 0.3 && pointB.confidence > 0.3) {
           line(pointA.x, pointA.y, pointB.x, pointB.y);
       }
     }
@@ -427,6 +426,9 @@ function drawSkeleton(col) {
 }
 
 function getFaceBox(face) {
+   // Sécurité si keypoints manquant
+   if(!face || !face.keypoints) return {x:0, y:0, w:0, h:0};
+   
    let minX = width, maxX = 0, minY = height, maxY = 0;
    for(let j=0; j<face.keypoints.length; j+=5){
       let kp = face.keypoints[j];
@@ -440,13 +442,14 @@ function drawFaceBoxes(col) {
   noFill(); stroke(col); strokeWeight(1); 
   for (let i = 0; i < faces.length; i++) {
     let box = getFaceBox(faces[i]);
-    rect(box.x, box.y, box.w, box.h);
-    line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
-    line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
+    if(box.w > 0) {
+        rect(box.x, box.y, box.w, box.h);
+        line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
+        line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
+    }
   }
 }
 
-// --- COEUR DE LA DÉTECTION AMÉLIORÉE ---
 function analyzeMovements() {
   let results = [];
   let currentAllFacesKps = [];
@@ -455,27 +458,23 @@ function analyzeMovements() {
     let face = faces[i];
     let movementScore = 0;
     let box = getFaceBox(face);
-
-    // Calcul de la taille du visage (Largeur) pour normaliser
-    // Si la face est petite (loin), faceScale sera petit
-    let faceScale = max(box.w, 20); // Minimum 20px pour éviter division par zéro
+    let faceScale = max(box.w, 20); 
 
     let currentExp = [];
-    for(let idx of expressionIndices) currentExp.push({x: face.keypoints[idx].x, y: face.keypoints[idx].y});
+    // Sécurité sur les indices
+    for(let idx of expressionIndices) {
+        if(face.keypoints[idx]) {
+            currentExp.push({x: face.keypoints[idx].x, y: face.keypoints[idx].y});
+        }
+    }
     currentAllFacesKps.push(currentExp);
 
-    if(prevAllFacesKeypoints[i]) {
+    if(prevAllFacesKeypoints[i] && prevAllFacesKeypoints[i].length === currentExp.length) {
        let totalDist = 0;
        let validCount = 0;
        
        for(let j=0; j<currentExp.length; j++) {
          let d = dist(currentExp[j].x, currentExp[j].y, prevAllFacesKeypoints[i][j].x, prevAllFacesKeypoints[i][j].y);
-         
-         // FILTRE ADAPTATIF :
-         // On accepte un mouvement seulement s'il dépasse X% de la taille du visage
-         // De près (face=200px), il faut bouger de >1px
-         // De loin (face=40px), il faut bouger de >0.2px
-         // Cela rend la détection EGALITAIRE.
          if (d > (noiseFilter * (faceScale / 100))) {
             totalDist += d;
             validCount++;
@@ -483,13 +482,13 @@ function analyzeMovements() {
        }
        
        if (validCount > 0) {
-           // On normalise le score final par rapport à la taille du visage
-           // Score = (Distance Moyenne / Taille Visage) * 100
            movementScore = (totalDist / validCount) / faceScale * 100;
        }
     }
     results.push({ faceIndex: i, score: movementScore, box: box });
   }
+  
+  // Nettoyage mémoire : On ne garde que les données des visages actuels
   prevAllFacesKeypoints = currentAllFacesKps;
   return results;
 }
@@ -499,21 +498,20 @@ function drawSurvivalGauge(box, value) {
   let barHeight = 8;
   let x = box.x;
   let y = box.y - 30;
-  fill(30, 30, 30, 200);
-  noStroke();
+  fill(30, 30, 30, 200); noStroke();
   rect(x, y, barWidth, barHeight);
   let fillPercent = map(value, 0, soloGaugeLimit, 0, barWidth);
   fillPercent = constrain(fillPercent, 0, barWidth);
+  
   if (value < soloGaugeLimit * 0.5) fill(0, 255, 0);
   else if (value < soloGaugeLimit * 0.8) fill(255, 165, 0);
   else fill(255, 0, 0);
+  
   rect(x, y, fillPercent, barHeight);
-  stroke(255); strokeWeight(1);
-  noFill();
+  stroke(255); strokeWeight(1); noFill();
   rect(x, y, barWidth, barHeight);
   
-  fill(255); noStroke();
-  textFont('Arial');
+  fill(255); noStroke(); textFont('Arial');
   textSize(14); textAlign(CENTER, BOTTOM); 
   text("Niveau d'alerte", x + barWidth/2, y - 5);
 }
@@ -521,27 +519,35 @@ function drawSurvivalGauge(box, value) {
 function drawAgitationScore(box, value) {
   let x = box.x;
   let y = box.y - 25;
-  fill(255, 0, 0);
-  noStroke();
-  textFont('Arial');
-  textSize(18); 
-  textAlign(CENTER);
+  fill(255, 0, 0); noStroke();
+  textFont('Arial'); textSize(18); textAlign(CENTER);
   text("Mvt: " + Math.floor(value), x + box.w/2, y);
 }
 
+// --- FONCTION DE CAPTURE SÉCURISÉE ---
 function takeSnapshot(box) {
+  // 1. Validation des dimensions pour éviter les crashs de création graphique
   let padding = 50;
-  let x = max(0, box.x - padding);
-  let y = max(0, box.y - padding);
-  let w = min(width - x, box.w + padding * 2);
-  let h = min(height - y, box.h + padding * 2);
+  let x = Math.floor(max(0, box.x - padding));
+  let y = Math.floor(max(0, box.y - padding));
+  let w = Math.floor(min(width - x, box.w + padding * 2));
+  let h = Math.floor(min(height - y, box.h + padding * 2));
 
-  if (w > 0 && h > 0) {
-    let pg = createGraphics(w, h);
+  // Sécurité absolue : si l'image est trop petite, on annule
+  if (w < 10 || h < 10) {
+      console.log("Capture annulée : zone trop petite");
+      return;
+  }
+
+  // 2. Utilisation d'un bloc try/catch pour la création graphique
+  let pg;
+  try {
+    pg = createGraphics(w, h);
     pg.image(video, 0, 0, w, h, x, y, w, h);
-    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.6); 
-    pg.remove();
-
+    
+    // Compression JPEG 0.5 pour alléger l'envoi réseau et éviter les lags
+    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.5); 
+    
     let randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
 
@@ -549,13 +555,21 @@ function takeSnapshot(box) {
         conn.send({
             image: dataUrl,
             id: "Individu " + idNum,
-            adj: cleanText(randomAdj) // On nettoie aussi l'adjectif ici
+            adj: cleanText(randomAdj)
         });
         console.log(`📡 Envoyé : Individu ${idNum}`);
     } else {
-        console.log("⚠️ Échec envoi : Mobile non connecté.");
+        console.log("⚠️ Non envoyé (pas de connexion mobile)");
     }
-    
     globalCaptureCount++;
+    
+  } catch (err) {
+      console.error("Erreur snapshot:", err);
+  } finally {
+      // 3. NETTOYAGE IMPÉRATIF DE LA MÉMOIRE
+      if (pg) {
+          pg.remove(); 
+          pg = null;
+      }
   }
 }
