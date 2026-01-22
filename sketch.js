@@ -4,18 +4,17 @@ let poses = [];
 let faces = [];
 let connections;
 
-// --- POLICES D'ÉCRITURE ---
+// --- POLICES ---
 let fontMedium, fontRegular;
 
-// --- CONFIGURATION RÉSEAU ---
+// --- RÉSEAU ---
 let peer;
 let conn; 
 const HOST_ID = "biometral-grg-2026"; 
 let networkStatus = "🔴 Déconnecté"; 
 
-// --- VARIABLES TEXTE & COMPTEUR ---
+// --- DONNÉES JEU ---
 let globalCaptureCount = 1;
-// Liste sans accents
 const adjectives = [
   "Agite", "Nerveux", "Tendu", "Febrile", 
   "Inquiet", "Stresse", "Instable", "Impatient", 
@@ -23,76 +22,72 @@ const adjectives = [
   "Survolte", "Traque", "Anxieux"
 ];
 
-// --- GESTION DES SCÈNES ---
+// --- SCÈNES ---
 let currentScene = "HOME";
-
-// --- VARIABLES UI ---
 let startButton;
 let loadingStartTime = 0;
 const loadingDuration = 3000; 
 let prepStartTime = 0;
 const prepDuration = 10; 
 
-// --- VARIABLES JEU ---
+// --- GAMEPLAY ---
 let gameState = "GREEN";
 let nextStateTime = 0;
 let hasCaughtSomeone = false;
 let redLightStartTime = 0;
 
-// --- VARIABLES DEBUG ---
+// --- DEBUG ---
 let isPaused = false;
 let pauseStartTime = 0;
 
-// --- REGLAGES & DIFFICULTÉ ---
-let noiseFilter = 0.5; 
+// --- RÉGLAGES DE SENSIBILITÉ (NOUVEAU) ---
+// Seuil de mouvement : 0.05 signifie "bouger de 5% de la largeur de ses épaules"
+let sensitivityThreshold = 0.04; 
+// Multiplicateur de score pour que la jauge monte vite
+let scoreMultiplier = 80; 
 let soloGaugeLimit = 500;
-let prevAllFacesKeypoints = []; // On va devoir bien gérer ce tableau
+
+// Mémoire des positions précédentes (Squelettes)
+let prevPosesKeypoints = {}; 
 let accumulatedScores = {};
 
-// --- ML5 CONFIG (LIMITÉ À 5) ---
+// --- ML5 CONFIG ---
 let bodyOptions = { 
     modelType: "MULTIPOSE_LIGHTNING", 
     enableSmoothing: true, 
-    minConfidence: 0.3,
+    minConfidence: 0.25, // Assez bas pour détecter de loin
     maxPoses: 5 
 };
 let faceOptions = { 
     maxFaces: 5,
     refineLandmarks: false, 
     flipped: false, 
-    minConfidence: 0.3
+    minConfidence: 0.25
 };
-
-let expressionIndices = [1, 13, 14, 33, 263, 152];
 
 function preload() {
   bodyPose = ml5.bodyPose(bodyOptions);
   faceMesh = ml5.faceMesh(faceOptions);
-  
   fontMedium = loadFont('EaseDisplayTRIAL-Medium.ttf');
   fontRegular = loadFont('EaseDisplayTRIAL-Regular.ttf');
 }
 
 function setup() {
-  // Optimisation: Utiliser P2D pour le rendu peut être plus stable graphiquement
   createCanvas(windowWidth, windowHeight);
-  
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
-  // PeerJS setup avec gestion d'erreur améliorée
   setupPeer();
 
   bodyPose.detectStart(video, results => {
-      // Sécurité : Si results est null ou undefined, on vide
-      if(!results) poses = [];
-      else poses = results.slice(0, 5);
+      if(results) poses = results.slice(0, 5);
+      else poses = [];
   });
   
   faceMesh.detectStart(video, results => {
-      if(!results) faces = [];
-      else faces = results.slice(0, 5);
+      if(results) faces = results.slice(0, 5);
+      else faces = [];
   });
   
   connections = bodyPose.getSkeleton();
@@ -101,38 +96,24 @@ function setup() {
   styleButton();
   centerButton();
   startButton.mousePressed(triggerLoading);
-  
   textFont('Arial'); 
 }
 
 function setupPeer() {
     try {
-        if(peer) peer.destroy(); // Nettoyage si reconnexion
+        if(peer) peer.destroy();
         peer = new Peer(HOST_ID, { debug: 1 });
-        
-        peer.on('open', (id) => {
-            console.log('ID Serveur:', id);
-            networkStatus = "🟠 Attente mobile (" + id + ")";
-        });
-        
+        peer.on('open', (id) => networkStatus = "🟠 Attente mobile (" + id + ")");
         peer.on('connection', (c) => {
             conn = c;
             networkStatus = "🟢 Mobile connecté !";
-            // Gestion de la fermeture du côté mobile
             conn.on('close', () => networkStatus = "🟠 Attente mobile...");
         });
-
         peer.on('error', (err) => {
-            networkStatus = "❌ " + err.type;
             if(err.type === 'unavailable-id') networkStatus = "❌ ID pris. Rechargez.";
-            // Tentative de reconnexion auto après 3s si déconnecté
-            if(err.type === 'network' || err.type === 'disconnected') {
-                setTimeout(setupPeer, 3000);
-            }
+            else setTimeout(setupPeer, 3000);
         });
-    } catch(e) {
-        console.error("Erreur PeerJS:", e);
-    }
+    } catch(e) { console.error(e); }
 }
 
 function windowResized() {
@@ -153,7 +134,6 @@ function styleButton() {
   startButton.style('color', 'black');
   startButton.style('border', '1px solid black'); 
   startButton.style('cursor', 'pointer');
-  startButton.style('border-radius', '0px');
   startButton.style('font-weight', 'bold');
 }
 
@@ -162,273 +142,240 @@ function cleanText(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-// --- LOGIQUE NAVIGATION ---
-function triggerLoading() {
-  currentScene = "LOADING";
-  startButton.hide();
-  loadingStartTime = millis();
-}
-
-function triggerPrep() {
-  currentScene = "PREP";
-  prepStartTime = millis();
-}
-
-function startGame() {
-  currentScene = "GAME";
-  setNextState("GREEN");
-}
+// --- NAVIGATION ---
+function triggerLoading() { currentScene = "LOADING"; startButton.hide(); loadingStartTime = millis(); }
+function triggerPrep() { currentScene = "PREP"; prepStartTime = millis(); }
+function startGame() { currentScene = "GAME"; setNextState("GREEN"); }
 
 function keyPressed() {
   if (currentScene === "GAME" && key === ' ') {
     isPaused = !isPaused;
     if (isPaused) pauseStartTime = millis();
     else {
-      let pauseDuration = millis() - pauseStartTime;
-      nextStateTime += pauseDuration;
-      if(gameState === "RED") redLightStartTime += pauseDuration;
+      let duration = millis() - pauseStartTime;
+      nextStateTime += duration;
+      if(gameState === "RED") redLightStartTime += duration;
     }
   }
 }
 
-// --- RENDU (DRAW) OPTIMISÉ ---
+// --- DESSIN PRINCIPAL ---
 function draw() {
   background(255);
-
-  // Sécurité: Si la vidéo n'est pas prête, on ne dessine rien pour éviter les erreurs
   if (!video.loadedmetadata) return;
 
-  if (currentScene === "HOME") {
-    drawSharedHeader();
-  } else if (currentScene === "LOADING") {
-    drawLoadingScene();
-  } else if (currentScene === "PREP") {
-    // Optimisation : dessiner l'image directement sans passer par des buffers intermédiaires
-    image(video, 0, 0, width, height);
-    drawPrepScene();
+  if (currentScene === "HOME") drawSharedHeader();
+  else if (currentScene === "LOADING") drawLoadingScene();
+  else if (currentScene === "PREP") {
+      image(video, 0, 0, width, height);
+      drawPrepScene();
   } else if (currentScene === "GAME") {
-    image(video, 0, 0, width, height);
-    if (isPaused) {
-      drawDebugOverlay();
-    } else {
-      drawGameLogic();
-    }
+      image(video, 0, 0, width, height);
+      if (isPaused) drawDebugOverlay();
+      else drawGameLogic();
   }
 }
 
-function drawSharedHeader(specificSubtitle) {
-  textAlign(LEFT, TOP);
-  fill(0);
-  noStroke();
-  
-  textFont(fontMedium);
-  textSize(48); 
-  text(cleanText("Biometral"), 50, 50);
-
-  textFont(fontRegular);
-  textSize(20); 
-  let sub = specificSubtitle || "Workshop GRG 2026";
-  text(cleanText(sub), 50, 100); 
+function drawSharedHeader(sub) {
+  textAlign(LEFT, TOP); fill(0); noStroke();
+  textFont(fontMedium); textSize(48); text(cleanText("Biometral"), 50, 50);
+  textFont(fontRegular); textSize(20); text(cleanText(sub || "Workshop GRG 2026"), 50, 100); 
 }
 
 function drawLoadingScene() {
   drawSharedHeader("PrintVision Statix2000 - Initialisation...");
-  let elapsed = millis() - loadingStartTime;
-  let progress = constrain(elapsed / loadingDuration, 0, 1);
-  let centerX = width / 2;
-  let centerY = height / 2;
+  let progress = constrain((millis() - loadingStartTime) / loadingDuration, 0, 1);
+  let cx = width / 2, cy = height / 2;
   
-  textAlign(CENTER, CENTER);
-  fill(0); noStroke();
+  textAlign(CENTER, CENTER); fill(0);
+  textFont(fontMedium); textSize(36); text(cleanText("Chargement du systeme"), cx, cy - 50);
+  textFont('Arial'); textSize(16); text(Math.floor(progress * 100) + "%", cx, cy + 50);
   
-  textFont(fontMedium);
-  textSize(36);
-  text(cleanText("Chargement du systeme"), centerX, centerY - 50);
+  let bw = 300, bh = 10;
+  fill(220); rect(cx - bw/2, cy, bw, bh);
+  fill(0); rect(cx - bw/2, cy, bw * progress, bh); // Barre simple noire
   
-  textFont('Arial');
-  textSize(16);
-  text(Math.floor(progress * 100) + "%", centerX, centerY + 50);
-  
-  let barWidth = 300; let barHeight = 10; 
-  let barX = centerX - barWidth / 2; let barY = centerY;
-  
-  fill(220); rect(barX, barY, barWidth, barHeight);
-  let currentFillWidth = barWidth * progress;
-  
-  stroke(50);
-  line(barX, barY + barHeight/2, barX + currentFillWidth, barY + barHeight/2);
-  noStroke();
-
   if (progress >= 1.0) triggerPrep();
 }
 
 function drawPrepScene() {
-  fill(255, 255, 255, 100);
-  rect(0,0,width,height);
+  fill(255, 255, 255, 100); rect(0,0,width,height);
   drawSharedHeader("Initialisation des capteurs...");
+  let remaining = Math.ceil(prepDuration - (millis() - prepStartTime) / 1000);
   
-  let elapsed = (millis() - prepStartTime) / 1000;
-  let remaining = Math.ceil(prepDuration - elapsed);
+  if (remaining <= 0) { startGame(); return; }
   
-  if (remaining <= 0) {
-    startGame();
-    return;
-  }
-  
-  textAlign(CENTER, CENTER);
-  fill(0); noStroke();
-  
-  textFont(fontMedium);
-  textSize(200);
-  text(remaining, width/2, height/2);
-  
-  textFont(fontRegular);
-  textSize(24);
-  text(cleanText("Placez-vous dans la zone"), width/2, height/2 + 120);
+  textAlign(CENTER, CENTER); fill(0);
+  textFont(fontMedium); textSize(200); text(remaining, width/2, height/2);
+  textFont(fontRegular); textSize(24); text(cleanText("Placez-vous dans la zone"), width/2, height/2 + 120);
 }
 
+// --- COEUR DU JEU ---
 function drawGameLogic() {
   checkGameState();
   
-  // Analyse seulement si des visages sont détectés pour économiser CPU
-  let frameData = [];
-  if (faces.length > 0) {
-      frameData = analyzeMovements();
-  }
+  // 1. Analyse du mouvement global (Corps)
+  let movementData = analyzeBodyMovements();
 
-  // Dessin des overlays
-  drawSkeleton(color(255, 255, 255, 150));
+  // 2. Dessin des squelettes et visages
+  drawSmartSkeleton(); // Dessin amélioré
   drawFaceBoxes(color(255, 255, 255, 180));
   drawSharedHeader("Scan en cours...");
   
   // Status Réseau
   textFont('Arial'); textSize(14); textAlign(RIGHT, TOP);
   if(networkStatus.includes("🟢")) fill(0, 200, 0);
-  else if(networkStatus.includes("❌")) fill(255, 0, 0);
-  else fill(255, 165, 0);
+  else fill(255, 0, 0);
   text(networkStatus, width - 20, 20);
 
   if (gameState === "RED") {
-     textAlign(CENTER, CENTER);
-     fill(255, 0, 0); noStroke();
-     
-     textFont(fontMedium); textSize(180);
-     text("Scan", width / 2, height / 2);
+     textAlign(CENTER, CENTER); fill(255, 0, 0); noStroke();
+     textFont(fontMedium); textSize(180); text("Scan", width / 2, height / 2);
+     fill(255); textFont(fontRegular); textSize(32); text(cleanText("Detection de mouvement"), width/2, height/2 + 100);
  
-     fill(255); noStroke();
-     textFont(fontRegular); textSize(32); 
-     text(cleanText("Detection de mouvement"), width/2, height/2 + 100);
+     if (millis() - redLightStartTime < 1000) return; // Délai de grâce 1s
  
-     if (millis() - redLightStartTime < 1000) return;
- 
-     for (let d of frameData) {
-         if (!accumulatedScores[d.faceIndex]) accumulatedScores[d.faceIndex] = 0;
-         if (d.score > 0) {
-             accumulatedScores[d.faceIndex] += d.score * 8;
-         }
+     // Application des scores et affichage jauges
+     for (let data of movementData) {
+         let fIndex = data.faceIndex;
+         if (!accumulatedScores[fIndex]) accumulatedScores[fIndex] = 0;
+         
+         // Accumulation du score
+         accumulatedScores[fIndex] += data.score;
          
          textFont('Arial'); 
          if (faces.length === 1) {
-             drawSurvivalGauge(d.box, accumulatedScores[d.faceIndex]);
+             drawSurvivalGauge(data.box, accumulatedScores[fIndex]);
          } else {
-             drawAgitationScore(d.box, accumulatedScores[d.faceIndex]);
+             drawAgitationScore(data.box, accumulatedScores[fIndex]);
          }
      }
   }
 }
 
-function drawDebugOverlay() {
-  background(255, 255, 255, 220);
-  drawSharedHeader("Mode maintenance");
-  fill(0); noStroke(); textAlign(CENTER, CENTER);
+// --- NOUVELLE LOGIQUE DE DÉTECTION ---
+function analyzeBodyMovements() {
+  let results = [];
   
-  textFont(fontMedium); textSize(200);
-  text("Debug", width/2, height/2);
-  
-  fill(50); textAlign(LEFT, BOTTOM); textSize(18); textFont('Arial');
-  let infoY = height - 50;
-  text("FPS : " + Math.floor(frameRate()), 50, infoY);
-  text("Visages : " + faces.length, 250, infoY);
-  
-  drawSkeleton(color(0, 0, 0, 50));
-  drawFaceBoxes(color(0, 0, 0, 50));
-}
+  // Pour chaque visage détecté
+  for (let i = 0; i < faces.length; i++) {
+    let face = faces[i];
+    let box = getFaceBox(face);
+    let movementScore = 0;
+    
+    // On cherche le squelette qui correspond à ce visage
+    // (Celui dont le nez est le plus proche du centre du visage)
+    let bestPose = null;
+    let minDist = 9999;
+    
+    // Le centre du visage
+    let faceCx = box.x + box.w/2;
+    let faceCy = box.y + box.h/2;
 
-function setNextState(newState) {
-  if (gameState === "RED" && newState === "GREEN") {
-     checkVerdict();
-  }
-  gameState = newState;
-  hasCaughtSomeone = false;
-  accumulatedScores = {};
-  
-  if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
-  else {
-    nextStateTime = millis() + random(5000, 9000);
-    redLightStartTime = millis();
-  }
-}
-
-function checkVerdict() {
-  let maxScore = 0;
-  let loserIndex = -1;
-  let playerCount = 0;
-  
-  for (let index in accumulatedScores) {
-    playerCount++;
-    if (accumulatedScores[index] > maxScore) {
-      maxScore = accumulatedScores[index];
-      loserIndex = index;
+    for(let pose of poses) {
+        // Le nez est souvent le point 0 du squelette
+        if(pose.keypoints && pose.keypoints[0]) {
+            let d = dist(faceCx, faceCy, pose.keypoints[0].x, pose.keypoints[0].y);
+            // Si le nez est à moins de "1 largeur de visage" du centre du visage
+            if(d < box.w * 1.5 && d < minDist) {
+                minDist = d;
+                bestPose = pose;
+            }
+        }
     }
+
+    // SI on a trouvé un corps attaché à ce visage
+    if (bestPose) {
+        // 1. Calcul de l'échelle (Largeur Épaules) pour normaliser distance/proximité
+        let leftShoulder = bestPose.keypoints[5];
+        let rightShoulder = bestPose.keypoints[6];
+        let scaleUnit = 100; // Valeur par défaut si échec
+
+        if(leftShoulder.confidence > 0.1 && rightShoulder.confidence > 0.1) {
+            scaleUnit = dist(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y);
+        } else {
+            // Repli : on utilise la largeur du visage * 3 comme approximation
+            scaleUnit = box.w * 3;
+        }
+
+        // 2. Points à surveiller (Poignets, Coudes, Épaules) - On ignore les jambes souvent cachées
+        // Indices: 5,6 (Épaules), 7,8 (Coudes), 9,10 (Poignets)
+        let indicesToCheck = [5, 6, 7, 8, 9, 10]; 
+        let currentBodyPoints = [];
+        let totalNormalizedDist = 0;
+        let validPoints = 0;
+
+        // Récupération des points actuels
+        for(let idx of indicesToCheck) {
+            let kp = bestPose.keypoints[idx];
+            if(kp && kp.confidence > 0.2) { // Seulement si point fiable
+                currentBodyPoints.push({id: idx, x: kp.x, y: kp.y});
+            }
+        }
+
+        // Comparaison avec l'image d'avant
+        let prevData = prevPosesKeypoints[i]; // On utilise l'index du visage comme clé
+        if (prevData) {
+            for(let currPt of currentBodyPoints) {
+                // Trouver le même point dans le passé
+                let prevPt = prevData.find(p => p.id === currPt.id);
+                if(prevPt) {
+                    let distancePx = dist(currPt.x, currPt.y, prevPt.x, prevPt.y);
+                    
+                    // NORMALISATION : Distance en pixels / Largeur Épaules
+                    // Ex: bouger de 10px sur une largeur d'épaule de 100px = 0.1
+                    let normalizedMvt = distancePx / scaleUnit;
+
+                    // Si le mouvement dépasse le seuil (ex: 4% de la largeur d'épaule)
+                    if(normalizedMvt > sensitivityThreshold) {
+                        totalNormalizedDist += normalizedMvt;
+                        validPoints++;
+                    }
+                }
+            }
+        }
+
+        // Moyenne du mouvement global
+        if(validPoints > 0) {
+            // Le score final est boosté par le multiplicateur
+            movementScore = (totalNormalizedDist / validPoints) * scoreMultiplier;
+        }
+
+        // Sauvegarde pour la prochaine frame
+        prevPosesKeypoints[i] = currentBodyPoints;
+    }
+
+    results.push({ faceIndex: i, score: movementScore, box: box });
   }
   
-  let shouldSnap = false;
-  if (playerCount === 1) {
-      if (maxScore > soloGaugeLimit) shouldSnap = true;
-  } else {
-      if (maxScore > 50) shouldSnap = true;
-  }
+  return results;
+}
+
+function drawSmartSkeleton() {
+  noFill(); stroke(255, 255, 255, 150); strokeWeight(2);
   
-  // VERIFICATION CRITIQUE : Est-ce que le visage existe encore ?
-  if (shouldSnap && faces[loserIndex]) {
-       try {
-           let face = faces[loserIndex];
-           let box = getFaceBox(face);
-           takeSnapshot(box); 
-           hasCaughtSomeone = true;
-       } catch(e) {
-           console.error("Erreur capture", e);
-       }
-  }
-}
-
-function checkGameState() {
-  if (millis() > nextStateTime) {
-    if (gameState === "GREEN") setNextState("RED");
-    else setNextState("GREEN");
-  }
-}
-
-function drawSkeleton(col) {
-  if(!poses) return; // Sécurité
-  stroke(col); strokeWeight(2);
-  for (let i = 0; i < poses.length; i++) {
-    let pose = poses[i];
-    if(!pose.keypoints) continue;
+  for (let pose of poses) {
+    // Dessiner les os seulement si confiance suffisante
     for (let j = 0; j < connections.length; j++) {
-      let pointA = pose.keypoints[connections[j][0]];
-      let pointB = pose.keypoints[connections[j][1]];
-      if (pointA && pointB && pointA.confidence > 0.3 && pointB.confidence > 0.3) {
-          line(pointA.x, pointA.y, pointB.x, pointB.y);
+      let kA = pose.keypoints[connections[j][0]];
+      let kB = pose.keypoints[connections[j][1]];
+      // Seuil confiance 0.3 pour éviter les squelettes "fantômes"
+      if (kA && kB && kA.confidence > 0.3 && kB.confidence > 0.3) {
+          line(kA.x, kA.y, kB.x, kB.y);
       }
     }
+    // Dessiner les articulations principales
+    fill(255, 0, 0); noStroke();
+    for(let kp of pose.keypoints) {
+        if(kp.confidence > 0.3) circle(kp.x, kp.y, 5);
+    }
   }
 }
 
+// --- UTILITAIRES & LOGIQUE JEU (Inchangés mais nettoyés) ---
+
 function getFaceBox(face) {
-   // Sécurité si keypoints manquant
    if(!face || !face.keypoints) return {x:0, y:0, w:0, h:0};
-   
    let minX = width, maxX = 0, minY = height, maxY = 0;
    for(let j=0; j<face.keypoints.length; j+=5){
       let kp = face.keypoints[j];
@@ -440,136 +387,112 @@ function getFaceBox(face) {
 
 function drawFaceBoxes(col) {
   noFill(); stroke(col); strokeWeight(1); 
-  for (let i = 0; i < faces.length; i++) {
-    let box = getFaceBox(faces[i]);
-    if(box.w > 0) {
-        rect(box.x, box.y, box.w, box.h);
-        line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
-        line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
-    }
-  }
-}
-
-function analyzeMovements() {
-  let results = [];
-  let currentAllFacesKps = [];
-
-  for (let i = 0; i < faces.length; i++) {
-    let face = faces[i];
-    let movementScore = 0;
+  for (let face of faces) {
     let box = getFaceBox(face);
-    let faceScale = max(box.w, 20); 
-
-    let currentExp = [];
-    // Sécurité sur les indices
-    for(let idx of expressionIndices) {
-        if(face.keypoints[idx]) {
-            currentExp.push({x: face.keypoints[idx].x, y: face.keypoints[idx].y});
-        }
+    if(box.w > 20) { // On ne dessine pas les micro-bugs
+        rect(box.x, box.y, box.w, box.h);
+        // Croix de visée
+        line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
+        line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
     }
-    currentAllFacesKps.push(currentExp);
-
-    if(prevAllFacesKeypoints[i] && prevAllFacesKeypoints[i].length === currentExp.length) {
-       let totalDist = 0;
-       let validCount = 0;
-       
-       for(let j=0; j<currentExp.length; j++) {
-         let d = dist(currentExp[j].x, currentExp[j].y, prevAllFacesKeypoints[i][j].x, prevAllFacesKeypoints[i][j].y);
-         if (d > (noiseFilter * (faceScale / 100))) {
-            totalDist += d;
-            validCount++;
-         }
-       }
-       
-       if (validCount > 0) {
-           movementScore = (totalDist / validCount) / faceScale * 100;
-       }
-    }
-    results.push({ faceIndex: i, score: movementScore, box: box });
   }
-  
-  // Nettoyage mémoire : On ne garde que les données des visages actuels
-  prevAllFacesKeypoints = currentAllFacesKps;
-  return results;
 }
 
 function drawSurvivalGauge(box, value) {
-  let barWidth = box.w;
-  let barHeight = 8;
-  let x = box.x;
-  let y = box.y - 30;
-  fill(30, 30, 30, 200); noStroke();
-  rect(x, y, barWidth, barHeight);
-  let fillPercent = map(value, 0, soloGaugeLimit, 0, barWidth);
-  fillPercent = constrain(fillPercent, 0, barWidth);
+  let w = box.w, h = 8, x = box.x, y = box.y - 30;
+  fill(30, 30, 30, 200); noStroke(); rect(x, y, w, h);
   
+  let fillPct = constrain(map(value, 0, soloGaugeLimit, 0, w), 0, w);
   if (value < soloGaugeLimit * 0.5) fill(0, 255, 0);
   else if (value < soloGaugeLimit * 0.8) fill(255, 165, 0);
   else fill(255, 0, 0);
   
-  rect(x, y, fillPercent, barHeight);
-  stroke(255); strokeWeight(1); noFill();
-  rect(x, y, barWidth, barHeight);
+  rect(x, y, fillPct, h);
+  stroke(255); noFill(); rect(x, y, w, h);
   
-  fill(255); noStroke(); textFont('Arial');
-  textSize(14); textAlign(CENTER, BOTTOM); 
-  text("Niveau d'alerte", x + barWidth/2, y - 5);
+  fill(255); noStroke(); textFont('Arial'); textSize(12); textAlign(CENTER, BOTTOM); 
+  text("Alerte", x + w/2, y - 2);
 }
 
 function drawAgitationScore(box, value) {
-  let x = box.x;
-  let y = box.y - 25;
-  fill(255, 0, 0); noStroke();
-  textFont('Arial'); textSize(18); textAlign(CENTER);
-  text("Mvt: " + Math.floor(value), x + box.w/2, y);
+  let x = box.x, y = box.y - 25;
+  fill(255, 0, 0); noStroke(); fontRegular ? textFont(fontRegular) : textFont('Arial');
+  textSize(24); textAlign(CENTER);
+  text(Math.floor(value), x + box.w/2, y);
 }
 
-// --- FONCTION DE CAPTURE SÉCURISÉE ---
-function takeSnapshot(box) {
-  // 1. Validation des dimensions pour éviter les crashs de création graphique
-  let padding = 50;
-  let x = Math.floor(max(0, box.x - padding));
-  let y = Math.floor(max(0, box.y - padding));
-  let w = Math.floor(min(width - x, box.w + padding * 2));
-  let h = Math.floor(min(height - y, box.h + padding * 2));
+function drawDebugOverlay() {
+  background(255, 255, 255, 220);
+  drawSharedHeader("Mode maintenance");
+  fill(0); noStroke(); textAlign(CENTER, CENTER);
+  textFont(fontMedium); textSize(100); text("PAUSE", width/2, height/2);
+}
 
-  // Sécurité absolue : si l'image est trop petite, on annule
-  if (w < 10 || h < 10) {
-      console.log("Capture annulée : zone trop petite");
-      return;
+// --- LOGIQUE ÉTATS ---
+function setNextState(newState) {
+  if (gameState === "RED" && newState === "GREEN") checkVerdict();
+  gameState = newState;
+  hasCaughtSomeone = false;
+  accumulatedScores = {}; // Reset des scores au début du feu vert
+  
+  if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
+  else {
+      nextStateTime = millis() + random(4000, 8000);
+      redLightStartTime = millis();
   }
+}
 
-  // 2. Utilisation d'un bloc try/catch pour la création graphique
+function checkVerdict() {
+  let maxScore = 0;
+  let loserIndex = -1;
+  let activePlayers = 0;
+  
+  for (let i in accumulatedScores) {
+      if(accumulatedScores[i] > 10) activePlayers++; // Filtre ceux qui n'ont pas bougé du tout
+      if (accumulatedScores[i] > maxScore) {
+          maxScore = accumulatedScores[i];
+          loserIndex = i;
+      }
+  }
+  
+  let threshold = (faces.length === 1) ? soloGaugeLimit : 50;
+  
+  if (maxScore > threshold && faces[loserIndex]) {
+       takeSnapshot(getFaceBox(faces[loserIndex])); 
+       hasCaughtSomeone = true;
+  }
+}
+
+function checkGameState() {
+  if (millis() > nextStateTime) {
+    if (gameState === "GREEN") setNextState("RED");
+    else setNextState("GREEN");
+  }
+}
+
+// --- CAPTURE ET ENVOI ---
+function takeSnapshot(box) {
+  let pad = 50;
+  let x = Math.floor(max(0, box.x - pad));
+  let y = Math.floor(max(0, box.y - pad));
+  let w = Math.floor(min(width - x, box.w + pad * 2));
+  let h = Math.floor(min(height - y, box.h + pad * 2));
+
+  if (w < 20 || h < 20) return;
+
   let pg;
   try {
     pg = createGraphics(w, h);
     pg.image(video, 0, 0, w, h, x, y, w, h);
+    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.5);
     
-    // Compression JPEG 0.5 pour alléger l'envoi réseau et éviter les lags
-    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.5); 
-    
-    let randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    let randAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
 
     if (conn && conn.open) {
-        conn.send({
-            image: dataUrl,
-            id: "Individu " + idNum,
-            adj: cleanText(randomAdj)
-        });
-        console.log(`📡 Envoyé : Individu ${idNum}`);
-    } else {
-        console.log("⚠️ Non envoyé (pas de connexion mobile)");
+        conn.send({ image: dataUrl, id: "Individu " + idNum, adj: cleanText(randAdj) });
     }
     globalCaptureCount++;
-    
-  } catch (err) {
-      console.error("Erreur snapshot:", err);
-  } finally {
-      // 3. NETTOYAGE IMPÉRATIF DE LA MÉMOIRE
-      if (pg) {
-          pg.remove(); 
-          pg = null;
-      }
-  }
+  } catch (err) { console.error(err); } 
+  finally { if (pg) pg.remove(); }
 }
