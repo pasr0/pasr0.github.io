@@ -15,6 +15,7 @@ let networkStatus = "🔴 Déconnecté";
 
 // --- DONNÉES JEU ---
 let globalCaptureCount = 1;
+// Liste sans accents pour éviter tout bug de transfert
 const adjectives = [
   "Agite", "Nerveux", "Tendu", "Febrile", 
   "Inquiet", "Stresse", "Instable", "Impatient", 
@@ -40,16 +41,18 @@ let redLightStartTime = 0;
 let isPaused = false;
 let pauseStartTime = 0;
 
-// --- RÉGLAGES ---
-let sensitivityThreshold = 0.5; // Seuil
-let scoreMultiplier = 2.5;      // Vitesse jauge
+// --- RÉGLAGES DE SENSIBILITÉ ---
+// Seuil de mouvement normalisé (0.01 = 1% de la taille de la tête)
+let sensitivityThreshold = 0.01; 
+// Vitesse de remplissage de la jauge
+let scoreMultiplier = 50; 
 let soloGaugeLimit = 500;
 
-// Mémoire simplifiée
+// Mémoire des positions précédentes (Centre de gravité)
 let prevCentroids = {}; 
 let accumulatedScores = {};
 
-// --- ML5 CONFIG ---
+// --- ML5 CONFIG (ROBUSTE) ---
 let bodyOptions = { 
     modelType: "MULTIPOSE_LIGHTNING", 
     enableSmoothing: true, 
@@ -77,6 +80,7 @@ function setup() {
 
   setupPeer();
 
+  // Callbacks sécurisés
   bodyPose.detectStart(video, results => { poses = results || []; });
   faceMesh.detectStart(video, results => { faces = results || []; });
   
@@ -90,18 +94,31 @@ function setup() {
   textFont('Arial'); 
 }
 
+// --- GESTION RÉSEAU AUTO-RECONNECT ---
 function setupPeer() {
     try {
         if(peer) peer.destroy();
         peer = new Peer(HOST_ID, { debug: 1 });
-        peer.on('open', (id) => networkStatus = "🟠 Attente mobile (" + id + ")");
+        
+        peer.on('open', (id) => {
+            console.log("Serveur OK: " + id);
+            networkStatus = "🟠 Attente mobile (" + id + ")";
+        });
+        
         peer.on('connection', (c) => {
             conn = c;
             networkStatus = "🟢 Mobile connecté !";
             conn.on('close', () => networkStatus = "🟠 Attente mobile...");
+            conn.on('error', () => networkStatus = "🟠 Erreur co.");
         });
+
         peer.on('error', (err) => {
-            if(err.type !== 'unavailable-id') setTimeout(setupPeer, 3000);
+            if(err.type !== 'unavailable-id') {
+                // Tentative de reconnexion auto
+                setTimeout(setupPeer, 3000);
+            } else {
+                networkStatus = "❌ ID déjà pris. Rafraîchir.";
+            }
         });
     } catch(e) { console.error(e); }
 }
@@ -144,9 +161,10 @@ function keyPressed() {
   }
 }
 
-// --- BOUCLE PRINCIPALE ---
+// --- RENDU GRAPHIQUE ---
 function draw() {
   background(255);
+  // Sécurité absolue : si la vidéo n'est pas chargée, on ne fait rien
   if (!video.loadedmetadata) return;
 
   if (currentScene === "HOME") {
@@ -165,6 +183,7 @@ function draw() {
 
 function drawSharedHeader(sub) {
   textAlign(LEFT, TOP); fill(0); noStroke();
+  // Seul le titre en Ease
   textFont(easeFont); textSize(48); text("Biometral", 50, 50);
   textFont('Arial'); textSize(20); text(sub || "Workshop GRG 2026", 50, 100); 
 }
@@ -192,6 +211,7 @@ function drawPrepScene() {
   if (remaining <= 0) { startGame(); return; }
   
   textAlign(CENTER, CENTER); fill(0);
+  // Ease pour le gros chiffre
   textFont(easeFont); textSize(200); text(remaining, width/2, height/2);
   textFont('Arial'); textSize(24); text("Placez-vous dans la zone", width/2, height/2 + 120);
 }
@@ -199,13 +219,13 @@ function drawPrepScene() {
 function drawGameLogic() {
   checkGameState();
   
-  // 1. CALCUL BASÉ SUR LE CORPS (SQUELETTE)
-  // On récupère une liste de "Joueurs" (qu'ils aient un visage détecté ou non)
-  let players = analyzePlayers();
+  // 1. ANALYSE (Priorité Squelette)
+  // On récupère une liste propre de joueurs, même si le visage est perdu
+  let players = analyzePlayersRobust();
 
   // 2. DESSIN
   drawSmartSkeleton();
-  drawPlayerBoxes(players); // On dessine les boites calculées
+  drawPlayerBoxes(players); 
   drawSharedHeader("Scan en cours...");
   
   // 3. UI RÉSEAU
@@ -217,15 +237,16 @@ function drawGameLogic() {
   // 4. JEU (RED LIGHT)
   if (gameState === "RED") {
      textAlign(CENTER, CENTER); fill(255, 0, 0); noStroke();
+     // Titre Scan en Ease
      textFont(easeFont); textSize(180); text("Scan", width / 2, height / 2);
      
      fill(255); textFont('Arial'); textSize(32); text("Détection de mouvement", width/2, height/2 + 100);
  
-     if (millis() - redLightStartTime < 1000) return; 
+     if (millis() - redLightStartTime < 1000) return; // Délai 1s
  
-     // Boucle sur les joueurs détectés (Squelettes)
+     // Boucle sur les joueurs détectés
      for (let p of players) {
-         let pIndex = p.index;
+         let pIndex = p.index; // Index unique du squelette
          
          if (!accumulatedScores[pIndex]) accumulatedScores[pIndex] = 0;
          accumulatedScores[pIndex] += p.score;
@@ -251,24 +272,26 @@ function drawDebugOverlay() {
   text("Squelettes : " + poses.length, 200, infoY);
 }
 
-// --- COEUR DE L'ANALYSE (SQUELETTE PRIORITAIRE) ---
-function analyzePlayers() {
+// --- COEUR DE L'ANALYSE (SQUELETTE D'ABORD) ---
+// C'est cette fonction qui garantit que ça ne plante jamais
+function analyzePlayersRobust() {
   let results = [];
   
-  // On boucle sur les SQUELETTES (plus fiables que les visages)
+  // On itère sur les SQUELETTES (Poses) car c'est la base du corps
   for (let i = 0; i < poses.length; i++) {
     let pose = poses[i];
     
-    // Si pas de squelette valide, on passe
+    // Si pas de points clés, on ignore
     if(!pose.keypoints) continue;
 
-    // 1. Tenter de trouver le visage correspondant
+    // 1. Tenter de trouver le VISAGE correspondant
     let matchedFace = null;
-    let nose = pose.keypoints[0]; // Le nez du squelette
+    let nose = pose.keypoints[0]; // Nez
     
     if (nose && nose.confidence > 0.1) {
-        let bestDist = 200; // Rayon de recherche max
+        let bestDist = 200; // Rayon de recherche (pixels)
         for(let face of faces) {
+            // On calcule le centre du visage
             let box = getFaceBox(face);
             let cx = box.x + box.w/2;
             let cy = box.y + box.h/2;
@@ -280,45 +303,46 @@ function analyzePlayers() {
         }
     }
 
-    // 2. Définir la Boite (Box)
+    // 2. Définir la BOITE (Box)
     let finalBox;
     if (matchedFace) {
-        // Cas Idéal : On a le visage
+        // Idéal : On a le visage
         finalBox = getFaceBox(matchedFace);
     } else {
-        // Cas Secours : On devine la tête grâce aux épaules/nez
+        // Secours : On estime la tête via le squelette
         finalBox = estimateHeadBox(pose);
     }
 
-    // Si la boite est invalide (trop petite ou hors champ), on ignore ce joueur
-    if (finalBox.w < 10) continue;
+    // Sécurité : Si la boite est invalide ou hors champ, on passe
+    if (finalBox.w < 10 || finalBox.x < -50 || finalBox.x > width+50) continue;
 
     // 3. Calcul du Mouvement (Centroïde)
     let currentScore = 0;
     let sumX = 0, sumY = 0, count = 0;
     
-    // On utilise les points du squelette (plus stable)
-    // Nez(0), Épaules(5,6), Coudes(7,8), Poignets(9,10)
-    let indices = [0, 5, 6, 7, 8, 9, 10];
+    // On utilise les points stables du squelette (Nez, Épaules, Hanches)
+    let indices = [0, 5, 6, 11, 12]; 
     for(let idx of indices) {
         let kp = pose.keypoints[idx];
-        if(kp && kp.confidence > 0.2) {
+        if(kp && kp.confidence > 0.25) {
             sumX += kp.x;
             sumY += kp.y;
             count++;
         }
     }
 
+    // Si on a assez de points pour calculer un centre
     if (count > 0) {
         let avgX = sumX / count;
         let avgY = sumY / count;
         
-        let prev = prevCentroids[i]; // On utilise l'index du squelette
+        let prev = prevCentroids[i]; // Mémoire liée à l'index du squelette
         if (prev) {
             let d = dist(avgX, avgY, prev.x, prev.y);
-            // Normalisation par la largeur estimée de la tête
-            let scale = max(finalBox.w, 20);
+            // Normalisation par la taille de la tête (pour gérer la distance)
+            let scale = max(finalBox.w, 30);
             
+            // Si le mouvement dépasse le seuil
             if (d > sensitivityThreshold * (scale/10)) {
                 currentScore = (d / scale) * scoreMultiplier * 100;
             }
@@ -338,7 +362,7 @@ function analyzePlayers() {
   return results;
 }
 
-// --- UTILITAIRES DESSIN ---
+// --- UTILITAIRES DE DESSIN ET CALCUL ---
 
 function drawSmartSkeleton() {
   noFill(); stroke(255, 255, 255, 150); strokeWeight(2);
@@ -354,19 +378,16 @@ function drawSmartSkeleton() {
   }
 }
 
-// Dessine les boites calculées dans analyzePlayers
 function drawPlayerBoxes(players) {
     noFill(); stroke(255, 255, 255, 180); strokeWeight(1);
     for(let p of players) {
         let box = p.box;
         rect(box.x, box.y, box.w, box.h);
-        // Croix
         line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
         line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
     }
 }
 
-// Fonction existante pour obtenir la boite depuis le FaceMesh
 function getFaceBox(face) {
    if(!face || !face.keypoints) return {x:0, y:0, w:0, h:0};
    let minX = width, maxX = 0, minY = height, maxY = 0;
@@ -378,7 +399,7 @@ function getFaceBox(face) {
    return {x: minX, y: minY, w: maxX - minX, h: maxY - minY};
 }
 
-// NOUVELLE FONCTION : Estimer la boite de tête si pas de visage détecté
+// Fonction de secours mathématique si FaceMesh échoue
 function estimateHeadBox(pose) {
     let nose = pose.keypoints[0];
     let leftEar = pose.keypoints[3];
@@ -386,35 +407,24 @@ function estimateHeadBox(pose) {
     let leftShoulder = pose.keypoints[5];
     let rightShoulder = pose.keypoints[6];
 
-    let cx = 0, cy = 0, size = 50; // Valeurs par défaut
+    let cx = 0, cy = 0, size = 60; // Défaut
 
-    // Si on a le nez, c'est le centre
     if (nose && nose.confidence > 0.1) {
-        cx = nose.x;
-        cy = nose.y;
-    } 
-    // Sinon milieu des épaules - un peu de hauteur
-    else if (leftShoulder && rightShoulder) {
+        cx = nose.x; cy = nose.y;
+    } else if (leftShoulder && rightShoulder) {
         cx = (leftShoulder.x + rightShoulder.x) / 2;
         cy = (leftShoulder.y + rightShoulder.y) / 2 - 50;
     } else {
-        return {x:0, y:0, w:0, h:0}; // Impossible de deviner
+        return {x:0, y:0, w:0, h:0};
     }
 
-    // Estimation taille : distance oreilles ou épaules / 3
     if (leftEar && rightEar && leftEar.confidence > 0.1) {
         size = dist(leftEar.x, leftEar.y, rightEar.x, rightEar.y) * 1.5;
     } else if (leftShoulder && rightShoulder) {
         size = dist(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y) / 2.5;
     }
 
-    // Création de la boite carrée centrée
-    return {
-        x: cx - size/2,
-        y: cy - size/2,
-        w: size,
-        h: size
-    };
+    return { x: cx - size/2, y: cy - size/2, w: size, h: size };
 }
 
 function drawSurvivalGauge(box, value) {
@@ -453,7 +463,7 @@ function setNextState(newState) {
 function checkVerdict() {
   let maxScore = 0;
   let loserIndex = -1;
-  let players = analyzePlayers(); // Récupérer l'état actuel
+  let players = analyzePlayersRobust();
   let threshold = (players.length <= 1) ? soloGaugeLimit : 50;
   
   for (let i in accumulatedScores) {
@@ -463,8 +473,9 @@ function checkVerdict() {
       }
   }
   
+  // Si le score dépasse le seuil, on prend la photo du perdant
   if (maxScore > threshold) {
-      // Trouver le joueur correspondant à l'index
+      // Retrouver la boite du joueur perdant
       let loser = players.find(p => p.index == loserIndex);
       if(loser) {
           takeSnapshot(loser.box); 
