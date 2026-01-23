@@ -4,18 +4,17 @@ let poses = [];
 let faces = [];
 let connections;
 
-// --- FONTS ---
-let easeFont; // For big titles only
+// --- POLICES ---
+let easeFont; 
 
-// --- NETWORK (PEERJS) ---
+// --- RÉSEAU (PEERJS) ---
 let peer;
 let conn; 
 const HOST_ID = "biometral-grg-2026"; 
 let networkStatus = "🔴 Déconnecté"; 
 
-// --- GAME DATA ---
+// --- DONNÉES JEU ---
 let globalCaptureCount = 1;
-// Adjectives list (no accents for maximum safety during transfer)
 const adjectives = [
   "Agite", "Nerveux", "Tendu", "Febrile", 
   "Inquiet", "Stresse", "Instable", "Impatient", 
@@ -23,7 +22,7 @@ const adjectives = [
   "Survolte", "Traque", "Anxieux"
 ];
 
-// --- SCENES ---
+// --- SCÈNES ---
 let currentScene = "HOME";
 let startButton;
 let loadingStartTime = 0;
@@ -41,18 +40,18 @@ let redLightStartTime = 0;
 let isPaused = false;
 let pauseStartTime = 0;
 
-// --- DETECTION SETTINGS (STABILITY) ---
-// Threshold: How much relative movement triggers detection
-let sensitivityThreshold = 0.05; 
-// Multiplier to make the score go up faster
-let scoreMultiplier = 80; 
+// --- RÉGLAGES DE DÉTECTION GLOBAL ---
+// Seuil bas car on fait la moyenne de 500 points (beaucoup sont stables)
+let sensitivityThreshold = 0.005; 
+// Multiplicateur très haut car la moyenne de mouvement est petite
+let scoreMultiplier = 800; 
 let soloGaugeLimit = 500;
 
-// Memory for previous positions
-let prevPosesKeypoints = {}; 
+// Mémoire des positions (Tableau de tableaux de points)
+let prevGlobalPoints = {}; 
 let accumulatedScores = {};
 
-// --- ML5 CONFIG (LIMITED TO 5 PEOPLE) ---
+// --- ML5 CONFIG ---
 let bodyOptions = { 
     modelType: "MULTIPOSE_LIGHTNING", 
     enableSmoothing: true, 
@@ -69,20 +68,17 @@ let faceOptions = {
 function preload() {
   bodyPose = ml5.bodyPose(bodyOptions);
   faceMesh = ml5.faceMesh(faceOptions);
-  // Load standard font for p5
   easeFont = loadFont('EaseDisplayTRIAL-Medium.ttf');
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
   setupPeer();
 
-  // Callbacks with security (.slice) to limit load
   bodyPose.detectStart(video, results => {
       poses = results ? results.slice(0, 5) : [];
   });
@@ -93,13 +89,11 @@ function setup() {
   
   connections = bodyPose.getSkeleton();
 
-  // Button creation (Arial Style)
   startButton = createButton('Commencer le scan ↗');
   styleButton();
   centerButton();
   startButton.mousePressed(triggerLoading);
   
-  // Default font for the sketch
   textFont('Arial'); 
 }
 
@@ -107,21 +101,18 @@ function setupPeer() {
     try {
         if(peer) peer.destroy();
         peer = new Peer(HOST_ID, { debug: 1 });
-        
         peer.on('open', (id) => {
             console.log('ID Serveur:', id);
             networkStatus = "🟠 Attente mobile (" + id + ")";
         });
-        
         peer.on('connection', (c) => {
             conn = c;
             networkStatus = "🟢 Mobile connecté !";
             conn.on('close', () => networkStatus = "🟠 Attente mobile...");
         });
-
         peer.on('error', (err) => {
-            if(err.type === 'unavailable-id') networkStatus = "❌ ID déjà pris. Rechargez.";
-            else setTimeout(setupPeer, 3000); // Auto-reconnect
+            if(err.type === 'unavailable-id') networkStatus = "❌ ID pris. Rechargez.";
+            else setTimeout(setupPeer, 3000);
         });
     } catch(e) { console.error(e); }
 }
@@ -164,10 +155,9 @@ function keyPressed() {
   }
 }
 
-// --- MAIN DRAW LOOP ---
+// --- DESSIN PRINCIPAL ---
 function draw() {
   background(255);
-  // Security: do nothing if video isn't ready
   if (!video.loadedmetadata) return;
 
   if (currentScene === "HOME") {
@@ -184,20 +174,10 @@ function draw() {
   }
 }
 
-// --- DISPLAY FUNCTIONS ---
-
-function drawSharedHeader(customSubtitle) {
+function drawSharedHeader(sub) {
   textAlign(LEFT, TOP); fill(0); noStroke();
-  
-  // TITLE: EASE Font
-  textFont(easeFont); 
-  textSize(48); 
-  text("Biometral", 50, 50);
-
-  // SUBTITLE: ARIAL Font
-  textFont('Arial'); 
-  textSize(20); 
-  text(customSubtitle || "Workshop GRG 2026", 50, 100); 
+  textFont(easeFont); textSize(48); text("Biometral", 50, 50);
+  textFont('Arial'); textSize(20); text(sub || "Workshop GRG 2026", 50, 100); 
 }
 
 function drawLoadingScene() {
@@ -206,18 +186,9 @@ function drawLoadingScene() {
   let cx = width / 2, cy = height / 2;
   
   textAlign(CENTER, CENTER); fill(0);
+  textFont('Arial'); textStyle(BOLD); textSize(36); text("Chargement du système", cx, cy - 50);
+  textStyle(NORMAL); textSize(16); text(Math.floor(progress * 100) + "%", cx, cy + 50);
   
-  // Loading Title: ARIAL
-  textFont('Arial'); 
-  textStyle(BOLD);
-  textSize(36); 
-  text("Chargement du système", cx, cy - 50);
-  
-  textStyle(NORMAL);
-  textSize(16); 
-  text(Math.floor(progress * 100) + "%", cx, cy + 50);
-  
-  // Progress Bar
   let bw = 300, bh = 10;
   fill(220); rect(cx - bw/2, cy, bw, bh);
   fill(0); rect(cx - bw/2, cy, bw * progress, bh);
@@ -229,67 +200,47 @@ function drawPrepScene() {
   fill(255, 255, 255, 100); rect(0,0,width,height);
   drawSharedHeader("Initialisation des capteurs...");
   let remaining = Math.ceil(prepDuration - (millis() - prepStartTime) / 1000);
-  
   if (remaining <= 0) { startGame(); return; }
   
   textAlign(CENTER, CENTER); fill(0);
-  
-  // Countdown: EASE Font
-  textFont(easeFont); 
-  textSize(200); 
-  text(remaining, width/2, height/2);
-  
-  textFont('Arial'); 
-  textSize(24); 
-  text("Placez-vous dans la zone", width/2, height/2 + 120);
+  textFont(easeFont); textSize(200); text(remaining, width/2, height/2);
+  textFont('Arial'); textSize(24); text("Placez-vous dans la zone", width/2, height/2 + 120);
 }
 
 function drawGameLogic() {
   checkGameState();
   
-  // 1. Analyze (only if faces are present)
+  // 1. ANALYSE GLOBALE (Tous les points)
   let movementData = [];
   if (faces.length > 0) {
-      movementData = analyzeBodyMovements();
+      movementData = analyzeGlobalMovements();
   }
 
-  // 2. Draw
+  // 2. DESSIN
   drawSmartSkeleton();
   drawFaceBoxes(color(255, 255, 255, 180));
   drawSharedHeader("Scan en cours...");
   
-  // 3. Network Status (Arial)
+  // 3. UI
   textFont('Arial'); textSize(14); textAlign(RIGHT, TOP);
   if(networkStatus.includes("🟢")) fill(0, 200, 0);
   else fill(255, 0, 0);
   text(networkStatus, width - 20, 20);
 
-  // 4. "RED LIGHT" Mode
+  // 4. FEU ROUGE
   if (gameState === "RED") {
      textAlign(CENTER, CENTER); fill(255, 0, 0); noStroke();
+     textFont(easeFont); textSize(180); text("Scan", width / 2, height / 2);
      
-     // KEYWORD: EASE Font
-     textFont(easeFont); 
-     textSize(180); 
-     text("Scan", width / 2, height / 2);
-     
-     // Subtitle: ARIAL Font
-     fill(255); 
-     textFont('Arial'); 
-     textSize(32); 
-     text("Détection de mouvement", width/2, height/2 + 100);
+     fill(255); textFont('Arial'); textSize(32); text("Détection de mouvement", width/2, height/2 + 100);
  
-     if (millis() - redLightStartTime < 1000) return; // Small delay
+     if (millis() - redLightStartTime < 1000) return; 
  
-     // Scores and Gauges
      for (let data of movementData) {
          let fIndex = data.faceIndex;
          if (!accumulatedScores[fIndex]) accumulatedScores[fIndex] = 0;
-         
-         // Add calculated score
          accumulatedScores[fIndex] += data.score;
          
-         // Display Gauges (All Arial)
          textFont('Arial'); 
          if (faces.length === 1) {
              drawSurvivalGauge(data.box, accumulatedScores[fIndex]);
@@ -304,21 +255,15 @@ function drawDebugOverlay() {
   background(255, 255, 255, 220);
   drawSharedHeader("Mode maintenance");
   fill(0); noStroke(); textAlign(CENTER, CENTER);
-  
-  // KEYWORD: EASE Font
-  textFont(easeFont); 
-  textSize(150); 
-  text("Debug", width/2, height/2);
-  
-  // Technical Info: ARIAL Font
+  textFont(easeFont); textSize(150); text("Debug", width/2, height/2);
   fill(50); textAlign(LEFT, BOTTOM); textSize(18); textFont('Arial');
   let infoY = height - 50;
   text("FPS : " + Math.floor(frameRate()), 50, infoY);
   text("Visages : " + faces.length, 200, infoY);
 }
 
-// --- INTELLIGENT DETECTION LOGIC (SCALED BY FACE SIZE) ---
-function analyzeBodyMovements() {
+// --- ANALYSE MASSIVE : VISAGE + CORPS ---
+function analyzeGlobalMovements() {
   let results = [];
   
   for (let i = 0; i < faces.length; i++) {
@@ -326,79 +271,81 @@ function analyzeBodyMovements() {
     let box = getFaceBox(face);
     let movementScore = 0;
     
-    // Associate Face <-> Body (nose closest to face center)
-    let bestPose = null;
-    let minDist = 9999;
+    // 1. Trouver le corps associé au visage
+    let matchedPose = null;
     let faceCx = box.x + box.w/2;
     let faceCy = box.y + box.h/2;
+    let bestDist = 9999;
 
     for(let pose of poses) {
         if(pose.keypoints && pose.keypoints[0]) {
             let d = dist(faceCx, faceCy, pose.keypoints[0].x, pose.keypoints[0].y);
-            // Loose tolerance: body is roughly under the face
-            if(d < box.w * 3 && d < minDist) { 
-                minDist = d;
-                bestPose = pose;
+            if(d < box.w * 3 && d < bestDist) { 
+                bestDist = d;
+                matchedPose = pose;
             }
         }
     }
 
-    if (bestPose) {
-        // 1. Calculate Scale based on FACE WIDTH
-        // This replaces the shoulder calculation. 
-        // If face is 50px wide, 1 unit = 50px.
-        // We use a factor (e.g., * 3) to approximate a body scale relative to face
-        let scaleUnit = box.w * 3; 
+    // 2. Collecter TOUS les points (Visage complet + Corps)
+    let allCurrentPoints = [];
 
-        // 2. Tracked Points (Shoulders, Elbows, Wrists)
-        let indicesToCheck = [5, 6, 7, 8, 9, 10]; 
-        let currentBodyPoints = [];
+    // A. Points du visage (468 points !)
+    // Pour ne pas faire ramer l'ordi, on prend 1 point sur 5, ce qui est suffisant
+    for(let k = 0; k < face.keypoints.length; k += 5) {
+        let p = face.keypoints[k];
+        allCurrentPoints.push({x: p.x, y: p.y});
+    }
+
+    // B. Points du corps (Si trouvé)
+    if(matchedPose) {
+        for(let kp of matchedPose.keypoints) {
+            // On ne prend que les points fiables
+            if(kp.confidence > 0.3) {
+                allCurrentPoints.push({x: kp.x, y: kp.y});
+            }
+        }
+    }
+
+    // 3. Calcul du mouvement moyen par rapport à la frame d'avant
+    // Facteur d'échelle : Largeur du visage (pour normaliser distance/proximité)
+    let scaleUnit = max(box.w, 10); 
+    
+    let prevPts = prevGlobalPoints[i];
+    if (prevPts && prevPts.length === allCurrentPoints.length) {
         let totalNormalizedDist = 0;
-        let validPoints = 0;
+        let count = 0;
 
-        for(let idx of indicesToCheck) {
-            let kp = bestPose.keypoints[idx];
-            // Only check confident points
-            if(kp && kp.confidence > 0.25) {
-                currentBodyPoints.push({id: idx, x: kp.x, y: kp.y});
+        for(let k = 0; k < allCurrentPoints.length; k++) {
+            let p1 = allCurrentPoints[k];
+            let p2 = prevPts[k];
+            
+            let d = dist(p1.x, p1.y, p2.x, p2.y);
+            // Normalisation : Déplacement relatif à la taille du visage
+            let normD = d / scaleUnit;
+            
+            totalNormalizedDist += normD;
+            count++;
+        }
+
+        if(count > 0) {
+            let avgMvt = totalNormalizedDist / count;
+            // Si le mouvement moyen dépasse le seuil (bruit de fond webcam)
+            if(avgMvt > sensitivityThreshold) {
+                movementScore = avgMvt * scoreMultiplier;
             }
         }
-
-        // 3. Compare with previous frame
-        let prevData = prevPosesKeypoints[i];
-        if (prevData) {
-            for(let currPt of currentBodyPoints) {
-                let prevPt = prevData.find(p => p.id === currPt.id);
-                if(prevPt) {
-                    let distancePx = dist(currPt.x, currPt.y, prevPt.x, prevPt.y);
-                    
-                    // NORMALIZATION:
-                    // Movement is divided by the scale unit. 
-                    // This makes movement relative to distance from camera.
-                    let normalizedMvt = distancePx / scaleUnit;
-
-                    // Threshold check
-                    if(normalizedMvt > sensitivityThreshold) {
-                        totalNormalizedDist += normalizedMvt;
-                        validPoints++;
-                    }
-                }
-            }
-        }
-
-        if(validPoints > 0) {
-            movementScore = (totalNormalizedDist / validPoints) * scoreMultiplier;
-        }
-
-        // Store for next frame
-        prevPosesKeypoints[i] = currentBodyPoints;
     }
+
+    // Sauvegarde pour la prochaine frame
+    prevGlobalPoints[i] = allCurrentPoints;
+    
     results.push({ faceIndex: i, score: movementScore, box: box });
   }
   return results;
 }
 
-// --- DRAW SKELETON & FACE ---
+// --- DESSIN ---
 function drawSmartSkeleton() {
   noFill(); stroke(255, 255, 255, 150); strokeWeight(2);
   for (let pose of poses) {
@@ -439,15 +386,12 @@ function drawFaceBoxes(col) {
 function drawSurvivalGauge(box, value) {
   let w = box.w, h = 8, x = box.x, y = box.y - 30;
   fill(30, 30, 30, 200); noStroke(); rect(x, y, w, h);
-  
   let fillPct = constrain(map(value, 0, soloGaugeLimit, 0, w), 0, w);
   if (value < soloGaugeLimit * 0.5) fill(0, 255, 0);
   else if (value < soloGaugeLimit * 0.8) fill(255, 165, 0);
   else fill(255, 0, 0);
-  
   rect(x, y, fillPct, h);
   stroke(255); noFill(); rect(x, y, w, h);
-  
   fill(255); noStroke(); textFont('Arial'); textSize(12); textAlign(CENTER, BOTTOM); 
   text("Alerte", x + w/2, y - 2);
 }
@@ -459,13 +403,12 @@ function drawAgitationScore(box, value) {
   text(Math.floor(value), x + box.w/2, y);
 }
 
-// --- GAME LOGIC ---
+// --- LOGIQUE DE JEU ---
 function setNextState(newState) {
   if (gameState === "RED" && newState === "GREEN") checkVerdict();
   gameState = newState;
   hasCaughtSomeone = false;
   accumulatedScores = {};
-  
   if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
   else {
       nextStateTime = millis() + random(4000, 8000);
@@ -477,14 +420,12 @@ function checkVerdict() {
   let maxScore = 0;
   let loserIndex = -1;
   let threshold = (faces.length === 1) ? soloGaugeLimit : 50;
-  
   for (let i in accumulatedScores) {
       if (accumulatedScores[i] > maxScore) {
           maxScore = accumulatedScores[i];
           loserIndex = i;
       }
   }
-  
   if (maxScore > threshold && faces[loserIndex]) {
        takeSnapshot(getFaceBox(faces[loserIndex])); 
        hasCaughtSomeone = true;
@@ -498,7 +439,7 @@ function checkGameState() {
   }
 }
 
-// --- CAPTURE & SEND (SECURE) ---
+// --- CAPTURE & ENVOI ---
 function takeSnapshot(box) {
   let pad = 50;
   let x = Math.floor(max(0, box.x - pad));
@@ -512,7 +453,7 @@ function takeSnapshot(box) {
   try {
     pg = createGraphics(w, h);
     pg.image(video, 0, 0, w, h, x, y, w, h);
-    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.5); // Compression
+    let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.5); 
     
     let randAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
@@ -523,5 +464,5 @@ function takeSnapshot(box) {
     }
     globalCaptureCount++;
   } catch (err) { console.error(err); } 
-  finally { if (pg) pg.remove(); } // Cleaning required
+  finally { if (pg) pg.remove(); } 
 }
