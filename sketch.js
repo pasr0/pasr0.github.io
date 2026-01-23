@@ -40,21 +40,21 @@ let redLightStartTime = 0;
 let isPaused = false;
 let pauseStartTime = 0;
 
-// --- RÉGLAGES DE DÉTECTION (CORRIGÉS POUR ÉVITER LES BLOCAGES) ---
-// Seuil très bas pour capter les micro-mouvements
-let sensitivityThreshold = 0.008; 
-// Multiplicateur ajusté pour que la jauge monte de façon fluide
-let scoreMultiplier = 40; 
+// --- RÉGLAGES DE DÉTECTION (RAPIDE) ---
+// Seuil de mouvement (plus bas = plus sensible)
+let sensitivityThreshold = 0.5; 
+// Vitesse de remplissage de la jauge
+let scoreMultiplier = 2.5; 
 let soloGaugeLimit = 500;
 
-// Mémoire des positions
-let prevGlobalPoints = {}; 
+// Mémoire simplifiée (Juste le centre de gravité X,Y)
+let prevCentroids = {}; 
 let accumulatedScores = {};
 
 // --- ML5 CONFIG ---
 let bodyOptions = { 
     modelType: "MULTIPOSE_LIGHTNING", 
-    enableSmoothing: true, 
+    enableSmoothing: true, // Important pour éviter le tremblement
     minConfidence: 0.25, 
     maxPoses: 5 
 };
@@ -72,20 +72,22 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // P2D est souvent plus performant pour le rendu vidéo
+  createCanvas(windowWidth, windowHeight); 
+  
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
   setupPeer();
 
+  // Callbacks ML5 optimisés
   bodyPose.detectStart(video, results => {
-      // Sécurité anti-crash si results est vide
-      poses = results ? results.slice(0, 5) : [];
+      poses = results || [];
   });
   
   faceMesh.detectStart(video, results => {
-      faces = results ? results.slice(0, 5) : [];
+      faces = results || [];
   });
   
   connections = bodyPose.getSkeleton();
@@ -102,18 +104,14 @@ function setupPeer() {
     try {
         if(peer) peer.destroy();
         peer = new Peer(HOST_ID, { debug: 1 });
-        peer.on('open', (id) => {
-            console.log('ID Serveur:', id);
-            networkStatus = "🟠 Attente mobile (" + id + ")";
-        });
+        peer.on('open', (id) => networkStatus = "🟠 Attente mobile (" + id + ")");
         peer.on('connection', (c) => {
             conn = c;
             networkStatus = "🟢 Mobile connecté !";
             conn.on('close', () => networkStatus = "🟠 Attente mobile...");
         });
         peer.on('error', (err) => {
-            if(err.type === 'unavailable-id') networkStatus = "❌ ID pris. Rechargez.";
-            else setTimeout(setupPeer, 3000);
+            if(err.type !== 'unavailable-id') setTimeout(setupPeer, 3000);
         });
     } catch(e) { console.error(e); }
 }
@@ -156,7 +154,7 @@ function keyPressed() {
   }
 }
 
-// --- DESSIN PRINCIPAL ---
+// --- BOUCLE PRINCIPALE ---
 function draw() {
   background(255);
   if (!video.loadedmetadata) return;
@@ -211,15 +209,10 @@ function drawPrepScene() {
 function drawGameLogic() {
   checkGameState();
   
-  // 1. ANALYSE ROBUSTE
+  // 1. CALCUL RAPIDE (CENTROÏDE)
   let movementData = [];
-  // Try/Catch pour éviter que toute l'appli plante si l'analyseur échoue
-  try {
-      if (faces.length > 0) {
-          movementData = analyzeRobustMovements();
-      }
-  } catch(e) {
-      console.error("Erreur Analyse:", e);
+  if (faces.length > 0) {
+      movementData = analyzeFastMovements();
   }
 
   // 2. DESSIN
@@ -240,15 +233,14 @@ function drawGameLogic() {
      
      fill(255); textFont('Arial'); textSize(32); text("Détection de mouvement", width/2, height/2 + 100);
  
-     // Délai de grâce 1 seconde
+     // Délai de grâce 1 sec
      if (millis() - redLightStartTime < 1000) return; 
  
      for (let data of movementData) {
          let fIndex = data.faceIndex;
-         
          if (!accumulatedScores[fIndex]) accumulatedScores[fIndex] = 0;
          
-         // Accumulation
+         // Accumulation fluide
          accumulatedScores[fIndex] += data.score;
          
          textFont('Arial'); 
@@ -272,24 +264,23 @@ function drawDebugOverlay() {
   text("Visages : " + faces.length, 200, infoY);
 }
 
-// --- COEUR DE LA DÉTECTION (ANTI-CRASH) ---
-function analyzeRobustMovements() {
+// --- CŒUR DU SYSTÈME (RAPIDE) ---
+function analyzeFastMovements() {
   let results = [];
   
   for (let i = 0; i < faces.length; i++) {
     let face = faces[i];
     let box = getFaceBox(face);
-    let currentFrameScore = 0;
+    let currentScore = 0;
     
-    // 1. Associer corps au visage
+    // 1. Trouver le corps (simplifié)
     let matchedPose = null;
     let faceCx = box.x + box.w/2;
-    let faceCy = box.y + box.h/2;
-    let bestDist = 9999;
+    let bestDist = 5000;
 
     for(let pose of poses) {
         if(pose.keypoints && pose.keypoints[0]) {
-            let d = dist(faceCx, faceCy, pose.keypoints[0].x, pose.keypoints[0].y);
+            let d = dist(faceCx, box.y, pose.keypoints[0].x, pose.keypoints[0].y);
             if(d < box.w * 3 && d < bestDist) { 
                 bestDist = d;
                 matchedPose = pose;
@@ -297,55 +288,58 @@ function analyzeRobustMovements() {
         }
     }
 
-    // 2. Collecter les points (Liste Plate)
-    let currentPoints = [];
+    // 2. Calculer le CENTRE DE GRAVITÉ (Moyenne X, Moyenne Y)
+    // On prend seulement quelques points clés très stables
+    let sumX = 0, sumY = 0, count = 0;
 
-    // A. Visage (Echantillonnage)
-    for(let k = 0; k < face.keypoints.length; k += 8) { // 1 point sur 8
-        currentPoints.push({x: face.keypoints[k].x, y: face.keypoints[k].y});
+    // A. Nez (Visage)
+    if(face.keypoints && face.keypoints[1]) {
+        sumX += face.keypoints[1].x;
+        sumY += face.keypoints[1].y;
+        count++;
     }
 
-    // B. Corps (Membres Supérieurs)
+    // B. Épaules et Poignets (Corps)
     if(matchedPose) {
-        let indices = [5, 6, 7, 8, 9, 10]; // Épaules, coudes, poignets
+        let indices = [5, 6, 9, 10]; // Épaules G/D, Poignets G/D
         for(let idx of indices) {
             let kp = matchedPose.keypoints[idx];
-            if(kp && kp.confidence > 0.2) {
-                currentPoints.push({x: kp.x, y: kp.y});
+            if(kp && kp.confidence > 0.3) {
+                sumX += kp.x;
+                sumY += kp.y;
+                count++;
             }
         }
     }
 
-    // 3. Comparaison SÉCURISÉE
-    let scaleUnit = max(box.w, 10); 
-    let prevPts = prevGlobalPoints[i];
-    
-    // ANTI-BUG : Si le nombre de points change (perte/gain tracking), on RESET la mémoire
-    // Cela empêche de comparer un nez à un coude, ce qui faisait planter le script
-    if (prevPts && prevPts.length === currentPoints.length) {
-        let sumMovements = 0;
+    if (count > 0) {
+        let avgX = sumX / count;
+        let avgY = sumY / count;
         
-        for(let k = 0; k < currentPoints.length; k++) {
-            let p1 = currentPoints[k];
-            let p2 = prevPts[k];
+        // Récupérer la position précédente
+        let prev = prevCentroids[i];
+        
+        if (prev) {
+            // Distance parcourue par le centre de gravité
+            let d = dist(avgX, avgY, prev.x, prev.y);
             
-            let d = dist(p1.x, p1.y, p2.x, p2.y);
-            let normD = d / scaleUnit; 
+            // Normalisation par la taille du visage (pour distance caméra)
+            let scale = max(box.w, 10);
             
-            // Si mouvement > seuil
-            if(normD > sensitivityThreshold) {
-                sumMovements += normD;
+            // Si le centre de gravité a bougé significativement
+            if (d > sensitivityThreshold * (scale/10)) {
+                // Score = mouvement * multiplicateur
+                currentScore = (d / scale) * scoreMultiplier * 100;
             }
         }
-        currentFrameScore = sumMovements * scoreMultiplier;
+        
+        // Sauvegarde
+        prevCentroids[i] = {x: avgX, y: avgY};
     } else {
-        // Reset mémoire si discordance
-        prevGlobalPoints[i] = null; 
+        prevCentroids[i] = null;
     }
-
-    // Sauvegarde
-    prevGlobalPoints[i] = currentPoints;
-    results.push({ faceIndex: i, score: currentFrameScore, box: box });
+    
+    results.push({ faceIndex: i, score: currentScore, box: box });
   }
   return results;
 }
@@ -408,12 +402,12 @@ function drawAgitationScore(box, value) {
   text(Math.floor(value), x + box.w/2, y);
 }
 
-// --- LOGIQUE DE JEU ---
+// --- LOGIQUE JEU ---
 function setNextState(newState) {
   if (gameState === "RED" && newState === "GREEN") checkVerdict();
   gameState = newState;
   hasCaughtSomeone = false;
-  accumulatedScores = {}; // Reset des scores
+  accumulatedScores = {}; 
   
   if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
   else {
