@@ -72,9 +72,7 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
-  // Optimisation vidéo
   video = createCapture(VIDEO, () => {
-      // On s'assure que la détection ne part que quand la vidéo est prête
       console.log("Vidéo chargée");
   });
   video.size(width, height);
@@ -82,7 +80,6 @@ function setup() {
 
   setupPeer();
 
-  // Callbacks de détection sécurisés
   bodyPose.detectStart(video, results => { 
       poses = results || []; 
   });
@@ -91,7 +88,6 @@ function setup() {
       faces = results || []; 
   });
   
-  // On récupère la structure du squelette (quels points relier)
   connections = bodyPose.getSkeleton();
 
   startButton = createButton('Commencer le scan ↗');
@@ -156,10 +152,9 @@ function keyPressed() {
   }
 }
 
-// --- BOUCLE DE DESSIN (SÉCURISÉE) ---
+// --- BOUCLE DE DESSIN ---
 function draw() {
   background(255);
-  // Si la vidéo n'est pas prête ou a planté, on sort tout de suite pour éviter les erreurs
   if (!video.loadedmetadata) return;
 
   if (currentScene === "HOME") {
@@ -217,13 +212,11 @@ function drawGameLogic() {
   try {
       players = analyzePlayersSafe();
   } catch(e) {
-      console.warn("Erreur analyse (skip frame):", e);
+      console.warn("Skip frame", e);
   }
 
-  // 2. DESSIN SQUELETTE (Avec garde-fou)
+  // 2. DESSIN
   drawSmartSkeleton();
-
-  // 3. DESSIN BOITES & UI
   drawPlayerBoxes(players);
   drawSharedHeader("Scan en cours...");
   
@@ -275,11 +268,8 @@ function analyzePlayersSafe() {
   
   for (let i = 0; i < poses.length; i++) {
     let pose = poses[i];
-    
-    // Si la pose est corrompue, on saute
     if(!pose || !pose.keypoints) continue;
 
-    // 1. Recherche Visage
     let matchedFace = null;
     let nose = pose.keypoints[0]; 
     
@@ -287,7 +277,6 @@ function analyzePlayersSafe() {
         let bestDist = 300; 
         for(let face of faces) {
             let box = getFaceBox(face);
-            // Vérif box valide
             if(box.w > 0) {
                 let cx = box.x + box.w/2;
                 let cy = box.y + box.h/2;
@@ -300,7 +289,6 @@ function analyzePlayersSafe() {
         }
     }
 
-    // 2. Définir Boite
     let finalBox;
     if (matchedFace) {
         finalBox = getFaceBox(matchedFace);
@@ -308,18 +296,14 @@ function analyzePlayersSafe() {
         finalBox = estimateHeadBox(pose);
     }
 
-    // Sécurité: Si boite invalide, on ignore
     if (finalBox.w < 5 || isNaN(finalBox.x)) continue;
 
-    // 3. Calcul Mouvement
     let currentScore = 0;
     let sumX = 0, sumY = 0, count = 0;
     
-    // Points clés pour le mouvement
     let indices = [0, 5, 6, 9, 10]; 
     for(let idx of indices) {
         let kp = pose.keypoints[idx];
-        // Vérification stricte que le point existe
         if(kp && kp.confidence > 0.2 && !isNaN(kp.x) && !isNaN(kp.y)) {
             sumX += kp.x;
             sumY += kp.y;
@@ -336,7 +320,6 @@ function analyzePlayersSafe() {
             let d = dist(avgX, avgY, prev.x, prev.y);
             let scale = max(finalBox.w, 30);
             
-            // Si mouvement détecté
             if (d > sensitivityThreshold * (scale/10)) {
                 currentScore = (d / scale) * scoreMultiplier * 100;
             }
@@ -352,24 +335,17 @@ function analyzePlayersSafe() {
   return results;
 }
 
-// --- DESSIN ROBUSTE (NE PLANTE PAS SI POINTS MANQUANTS) ---
+// --- UTILITAIRES ---
 function drawSmartSkeleton() {
-  // Sécurité: Si connections n'est pas encore chargé
   if(!connections || connections.length === 0) return;
-
   noFill(); stroke(255, 255, 255, 150); strokeWeight(2);
-  
   for (let pose of poses) {
     if(!pose.keypoints) continue;
-    
     for (let j = 0; j < connections.length; j++) {
       let idxA = connections[j][0];
       let idxB = connections[j][1];
-      
       let kA = pose.keypoints[idxA];
       let kB = pose.keypoints[idxB];
-      
-      // GARDE-FOU: On vérifie que kA et kB existent AVANT de dessiner
       if (kA && kB && kA.confidence > 0.25 && kB.confidence > 0.25) {
           line(kA.x, kA.y, kB.x, kB.y);
       }
@@ -381,7 +357,7 @@ function drawPlayerBoxes(players) {
     noFill(); stroke(255, 255, 255, 180); strokeWeight(1);
     for(let p of players) {
         let box = p.box;
-        if(box && box.w > 0) { // Sécurité dessin
+        if(box && box.w > 0) { 
             rect(box.x, box.y, box.w, box.h);
             line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
             line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
@@ -410,7 +386,6 @@ function estimateHeadBox(pose) {
     let rightShoulder = pose.keypoints[6];
 
     let cx = 0, cy = 0, size = 60;
-
     if (nose && nose.confidence > 0.1) {
         cx = nose.x; cy = nose.y;
     } else if (leftShoulder && rightShoulder) {
@@ -419,13 +394,11 @@ function estimateHeadBox(pose) {
     } else {
         return {x:0, y:0, w:0, h:0};
     }
-
     if (leftEar && rightEar && leftEar.confidence > 0.1) {
         size = dist(leftEar.x, leftEar.y, rightEar.x, rightEar.y) * 1.5;
     } else if (leftShoulder && rightShoulder) {
         size = dist(leftShoulder.x, leftShoulder.y, rightShoulder.x, rightShoulder.y) / 2.5;
     }
-
     return { x: cx - size/2, y: cy - size/2, w: size, h: size };
 }
 
@@ -449,15 +422,18 @@ function drawAgitationScore(box, value) {
   text(Math.floor(value), x + box.w/2, y);
 }
 
-// --- LOGIQUE JEU ---
+// --- LOGIQUE JEU (TEMPS DE SCAN 10-15 SECONDES) ---
 function setNextState(newState) {
   if (gameState === "RED" && newState === "GREEN") checkVerdict();
   gameState = newState;
   hasCaughtSomeone = false;
   accumulatedScores = {}; 
-  if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
-  else {
-      nextStateTime = millis() + random(4000, 8000);
+  
+  if (newState === "GREEN") {
+      nextStateTime = millis() + random(2000, 5000); // Feu Vert : 2 à 5 sec
+  } else {
+      // FEU ROUGE : 10 à 15 SECONDES
+      nextStateTime = millis() + random(10000, 15000);
       redLightStartTime = millis();
   }
 }
@@ -465,7 +441,9 @@ function setNextState(newState) {
 function checkVerdict() {
   let maxScore = 0;
   let loserIndex = -1;
-  let players = analyzePlayersSafe();
+  let players = [];
+  try { players = analyzePlayersSafe(); } catch(e){}
+  
   let threshold = (players.length <= 1) ? soloGaugeLimit : 50;
   
   for (let i in accumulatedScores) {
