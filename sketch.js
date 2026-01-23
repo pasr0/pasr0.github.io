@@ -16,10 +16,10 @@ let networkStatus = "🔴 Déconnecté";
 // --- DONNÉES JEU ---
 let globalCaptureCount = 1;
 const adjectives = [
-  "Nerveux", "Tendu", "Febrile", 
-  "Inquiet", "Stress", "Instable", "Impatient", 
-  "Brusque", "Panique",
-  "Survolte", "Anxieux"
+  "Agite", "Nerveux", "Tendu", "Febrile", 
+  "Inquiet", "Stresse", "Instable", "Impatient", 
+  "Brusque", "Perturbe", "Panique", "Crispe", 
+  "Survolte", "Traque", "Anxieux"
 ];
 
 // --- SCÈNES ---
@@ -49,18 +49,17 @@ let soloGaugeLimit = 500;
 let prevCentroids = {}; 
 let accumulatedScores = {};
 
-// --- ML5 CONFIG (MIRRORED) ---
+// --- ML5 CONFIG ---
 let bodyOptions = { 
     modelType: "MULTIPOSE_LIGHTNING", 
     enableSmoothing: true, 
     minConfidence: 0.25, 
-    maxPoses: 5,
-    flipped: true // <--- MODIF: Pour le miroir
+    maxPoses: 5 
 };
 let faceOptions = { 
     maxFaces: 5,
     refineLandmarks: false, 
-    flipped: true, // <--- MODIF: Pour le miroir
+    flipped: false, 
     minConfidence: 0.25
 };
 
@@ -73,7 +72,9 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
+  // Optimisation vidéo
   video = createCapture(VIDEO, () => {
+      // On s'assure que la détection ne part que quand la vidéo est prête
       console.log("Vidéo chargée");
   });
   video.size(width, height);
@@ -81,9 +82,16 @@ function setup() {
 
   setupPeer();
 
-  bodyPose.detectStart(video, results => { poses = results || []; });
-  faceMesh.detectStart(video, results => { faces = results || []; });
+  // Callbacks de détection sécurisés
+  bodyPose.detectStart(video, results => { 
+      poses = results || []; 
+  });
   
+  faceMesh.detectStart(video, results => { 
+      faces = results || []; 
+  });
+  
+  // On récupère la structure du squelette (quels points relier)
   connections = bodyPose.getSkeleton();
 
   startButton = createButton('Commencer le scan ↗');
@@ -98,11 +106,11 @@ function setupPeer() {
     try {
         if(peer) peer.destroy();
         peer = new Peer(HOST_ID, { debug: 1 });
-        peer.on('open', (id) => networkStatus = "🟠 Attente  (" + id + ")");
+        peer.on('open', (id) => networkStatus = "🟠 Attente mobile (" + id + ")");
         peer.on('connection', (c) => {
             conn = c;
-            networkStatus = "🟢 Connecté ";
-            conn.on('close', () => networkStatus = "🟠 Attente ...");
+            networkStatus = "🟢 Mobile connecté !";
+            conn.on('close', () => networkStatus = "🟠 Attente mobile...");
         });
         peer.on('error', (err) => {
             if(err.type !== 'unavailable-id') setTimeout(setupPeer, 3000);
@@ -148,9 +156,10 @@ function keyPressed() {
   }
 }
 
-// --- BOUCLE DE DESSIN ---
+// --- BOUCLE DE DESSIN (SÉCURISÉE) ---
 function draw() {
   background(255);
+  // Si la vidéo n'est pas prête ou a planté, on sort tout de suite pour éviter les erreurs
   if (!video.loadedmetadata) return;
 
   if (currentScene === "HOME") {
@@ -158,127 +167,14 @@ function draw() {
   } else if (currentScene === "LOADING") {
       drawLoadingScene();
   } else if (currentScene === "PREP") {
-      // MODIF MIROIR : On inverse l'affichage vidéo
-      push();
-      translate(width, 0);
-      scale(-1, 1);
       image(video, 0, 0, width, height);
-      pop();
-      
       drawPrepScene();
   } else if (currentScene === "GAME") {
-      // MODIF MIROIR : On inverse tout (Vidéo + Squelettes)
-      // On sauvegarde le contexte
-      push();
-      // On fait le miroir
-      translate(width, 0);
-      scale(-1, 1);
-      
-      // 1. Dessin Vidéo
       image(video, 0, 0, width, height);
-      
-      // 2. Logique & Dessin Squelettes (dans le contexte miroir)
-      if (!isPaused) {
-          // ANALYSE
-          let players = [];
-          try {
-              players = analyzePlayersSafe();
-          } catch(e) {}
-  
-          // DESSIN ÉLÉMENTS
-          drawSmartSkeleton();
-          drawPlayerBoxes(players);
-          
-          // GESTION JEU RED LIGHT (Logique visuelle déplacée ici pour être dans le miroir)
-          handleGameLogicInsideTransform(players);
-      } else {
-          // Si pause, on dessine juste les squelettes fixes
-          drawSmartSkeleton();
-      }
-      
-      // Fin du contexte miroir
-      pop(); 
-      
-      // --- INTERFACE (NON INVERSÉE) ---
-      drawSharedHeader("Scan en cours...");
-      
-      // UI RÉSEAU
-      textFont('Arial'); textSize(14); textAlign(RIGHT, TOP);
-      if(networkStatus.includes("🟢")) fill(0, 200, 0);
-      else fill(255, 0, 0);
-      text(networkStatus, width - 20, 20);
-      
-      // TEXTES DU JEU (Doivent être lisibles, donc hors du miroir)
-      if (gameState === "RED") {
-          textAlign(CENTER, CENTER); fill(255, 0, 0); noStroke();
-          textFont(easeFont); textSize(180); text("Scan", width / 2, height / 2);
-          fill(255); textFont('Arial'); textSize(32); text("Détection de mouvement", width/2, height/2 + 100);
-      }
-      
-      if(isPaused) drawDebugOverlay();
+      if (isPaused) drawDebugOverlay();
+      else drawGameLogic();
   }
 }
-
-function handleGameLogicInsideTransform(players) {
-    // Cette fonction gère la logique qui doit être alignée avec la vidéo inversée
-    
-    // GESTION JEU
-    checkGameState();
-
-    if (gameState === "RED") {
-        if (millis() - redLightStartTime < 1000) return; 
-
-        for (let p of players) {
-            let pIndex = p.index;
-            if (!accumulatedScores[pIndex]) accumulatedScores[pIndex] = 0;
-            accumulatedScores[pIndex] += p.score;
-            
-            // Pour dessiner le texte/jauge à l'endroit, on doit annuler le scale(-1, 1) localement
-            push();
-            translate(p.box.x + p.box.w/2, p.box.y); 
-            scale(-1, 1); // On ré-inverse juste pour le texte
-            translate(-(p.box.x + p.box.w/2), -p.box.y);
-            
-            // On dessine la jauge relative à la box
-            // Note: les coordonnées de box sont déjà inversées par ML5 "flipped:true"
-            // mais comme on est dans un context scale(-1, 1), ça s'aligne.
-            
-            // Simplification : On dessine directement, mais le texte sera à l'envers
-            // Astuce : On utilise une fonction de dessin qui gère le texte à l'endroit
-            drawGaugeCorrected(p.box, accumulatedScores[pIndex], players.length);
-            
-            pop();
-        }
-    }
-}
-
-function drawGaugeCorrected(box, value, playerCount) {
-    // Comme on est dans un contexte miroir, le texte serait inversé.
-    // On doit le dessiner "à l'envers" pour qu'il apparaisse "à l'endroit".
-    
-    let w = box.w, h = 8, x = box.x, y = box.y - 30;
-    
-    // Dessin Jauge (Géométrie OK en miroir)
-    fill(30, 30, 30, 200); noStroke(); rect(x, y, w, h);
-    let fillPct = constrain(map(value, 0, soloGaugeLimit, 0, w), 0, w);
-    if (value < soloGaugeLimit * 0.5) fill(0, 255, 0);
-    else if (value < soloGaugeLimit * 0.8) fill(255, 165, 0);
-    else fill(255, 0, 0);
-    rect(x, y, fillPct, h);
-    stroke(255); noFill(); rect(x, y, w, h);
-
-    // Dessin Texte (On doit le remettre à l'endroit)
-    push();
-    translate(x + w/2, y - 2);
-    scale(-1, 1); // Ré-inversion pour le texte
-    fill(255); noStroke(); textFont('Arial'); textSize(12); textAlign(CENTER, BOTTOM); 
-    
-    if(playerCount > 1) text(Math.floor(value), 0, 0);
-    else text("Alerte", 0, 0);
-    
-    pop();
-}
-
 
 function drawSharedHeader(sub) {
   textAlign(LEFT, TOP); fill(0); noStroke();
@@ -302,6 +198,66 @@ function drawLoadingScene() {
   if (progress >= 1.0) triggerPrep();
 }
 
+function drawPrepScene() {
+  fill(255, 255, 255, 100); rect(0,0,width,height);
+  drawSharedHeader("Initialisation des capteurs...");
+  let remaining = Math.ceil(prepDuration - (millis() - prepStartTime) / 1000);
+  if (remaining <= 0) { startGame(); return; }
+  
+  textAlign(CENTER, CENTER); fill(0);
+  textFont(easeFont); textSize(200); text(remaining, width/2, height/2);
+  textFont('Arial'); textSize(24); text("Placez-vous dans la zone", width/2, height/2 + 120);
+}
+
+function drawGameLogic() {
+  checkGameState();
+  
+  // 1. ANALYSE SÉCURISÉE
+  let players = [];
+  try {
+      players = analyzePlayersSafe();
+  } catch(e) {
+      console.warn("Erreur analyse (skip frame):", e);
+  }
+
+  // 2. DESSIN SQUELETTE (Avec garde-fou)
+  drawSmartSkeleton();
+
+  // 3. DESSIN BOITES & UI
+  drawPlayerBoxes(players);
+  drawSharedHeader("Scan en cours...");
+  
+  // UI RÉSEAU
+  textFont('Arial'); textSize(14); textAlign(RIGHT, TOP);
+  if(networkStatus.includes("🟢")) fill(0, 200, 0);
+  else fill(255, 0, 0);
+  text(networkStatus, width - 20, 20);
+
+  // 4. JEU (RED LIGHT)
+  if (gameState === "RED") {
+     textAlign(CENTER, CENTER); fill(255, 0, 0); noStroke();
+     textFont(easeFont); textSize(180); text("Scan", width / 2, height / 2);
+     
+     fill(255); textFont('Arial'); textSize(32); text("Détection de mouvement", width/2, height/2 + 100);
+ 
+     if (millis() - redLightStartTime < 1000) return; 
+ 
+     for (let p of players) {
+         let pIndex = p.index;
+         
+         if (!accumulatedScores[pIndex]) accumulatedScores[pIndex] = 0;
+         accumulatedScores[pIndex] += p.score;
+         
+         textFont('Arial'); 
+         if (players.length === 1) {
+             drawSurvivalGauge(p.box, accumulatedScores[pIndex]);
+         } else {
+             drawAgitationScore(p.box, accumulatedScores[pIndex]);
+         }
+     }
+  }
+}
+
 function drawDebugOverlay() {
   background(255, 255, 255, 220);
   drawSharedHeader("Mode maintenance");
@@ -319,8 +275,11 @@ function analyzePlayersSafe() {
   
   for (let i = 0; i < poses.length; i++) {
     let pose = poses[i];
+    
+    // Si la pose est corrompue, on saute
     if(!pose || !pose.keypoints) continue;
 
+    // 1. Recherche Visage
     let matchedFace = null;
     let nose = pose.keypoints[0]; 
     
@@ -328,6 +287,7 @@ function analyzePlayersSafe() {
         let bestDist = 300; 
         for(let face of faces) {
             let box = getFaceBox(face);
+            // Vérif box valide
             if(box.w > 0) {
                 let cx = box.x + box.w/2;
                 let cy = box.y + box.h/2;
@@ -340,6 +300,7 @@ function analyzePlayersSafe() {
         }
     }
 
+    // 2. Définir Boite
     let finalBox;
     if (matchedFace) {
         finalBox = getFaceBox(matchedFace);
@@ -347,14 +308,18 @@ function analyzePlayersSafe() {
         finalBox = estimateHeadBox(pose);
     }
 
+    // Sécurité: Si boite invalide, on ignore
     if (finalBox.w < 5 || isNaN(finalBox.x)) continue;
 
+    // 3. Calcul Mouvement
     let currentScore = 0;
     let sumX = 0, sumY = 0, count = 0;
     
+    // Points clés pour le mouvement
     let indices = [0, 5, 6, 9, 10]; 
     for(let idx of indices) {
         let kp = pose.keypoints[idx];
+        // Vérification stricte que le point existe
         if(kp && kp.confidence > 0.2 && !isNaN(kp.x) && !isNaN(kp.y)) {
             sumX += kp.x;
             sumY += kp.y;
@@ -371,6 +336,7 @@ function analyzePlayersSafe() {
             let d = dist(avgX, avgY, prev.x, prev.y);
             let scale = max(finalBox.w, 30);
             
+            // Si mouvement détecté
             if (d > sensitivityThreshold * (scale/10)) {
                 currentScore = (d / scale) * scoreMultiplier * 100;
             }
@@ -386,18 +352,24 @@ function analyzePlayersSafe() {
   return results;
 }
 
-// --- UTILITAIRES ---
+// --- DESSIN ROBUSTE (NE PLANTE PAS SI POINTS MANQUANTS) ---
 function drawSmartSkeleton() {
+  // Sécurité: Si connections n'est pas encore chargé
   if(!connections || connections.length === 0) return;
+
   noFill(); stroke(255, 255, 255, 150); strokeWeight(2);
   
   for (let pose of poses) {
     if(!pose.keypoints) continue;
+    
     for (let j = 0; j < connections.length; j++) {
       let idxA = connections[j][0];
       let idxB = connections[j][1];
+      
       let kA = pose.keypoints[idxA];
       let kB = pose.keypoints[idxB];
+      
+      // GARDE-FOU: On vérifie que kA et kB existent AVANT de dessiner
       if (kA && kB && kA.confidence > 0.25 && kB.confidence > 0.25) {
           line(kA.x, kA.y, kB.x, kB.y);
       }
@@ -409,7 +381,7 @@ function drawPlayerBoxes(players) {
     noFill(); stroke(255, 255, 255, 180); strokeWeight(1);
     for(let p of players) {
         let box = p.box;
-        if(box && box.w > 0) {
+        if(box && box.w > 0) { // Sécurité dessin
             rect(box.x, box.y, box.w, box.h);
             line(box.x + box.w/2, box.y + box.h/2 - 10, box.x + box.w/2, box.y + box.h/2 + 10);
             line(box.x + box.w/2 - 10, box.y + box.h/2, box.x + box.w/2 + 10, box.y + box.h/2);
@@ -457,18 +429,35 @@ function estimateHeadBox(pose) {
     return { x: cx - size/2, y: cy - size/2, w: size, h: size };
 }
 
+function drawSurvivalGauge(box, value) {
+  let w = box.w, h = 8, x = box.x, y = box.y - 30;
+  fill(30, 30, 30, 200); noStroke(); rect(x, y, w, h);
+  let fillPct = constrain(map(value, 0, soloGaugeLimit, 0, w), 0, w);
+  if (value < soloGaugeLimit * 0.5) fill(0, 255, 0);
+  else if (value < soloGaugeLimit * 0.8) fill(255, 165, 0);
+  else fill(255, 0, 0);
+  rect(x, y, fillPct, h);
+  stroke(255); noFill(); rect(x, y, w, h);
+  fill(255); noStroke(); textFont('Arial'); textSize(12); textAlign(CENTER, BOTTOM); 
+  text("Alerte", x + w/2, y - 2);
+}
+
+function drawAgitationScore(box, value) {
+  let x = box.x, y = box.y - 25;
+  fill(255, 0, 0); noStroke(); textFont('Arial');
+  textSize(24); textAlign(CENTER);
+  text(Math.floor(value), x + box.w/2, y);
+}
+
 // --- LOGIQUE JEU ---
 function setNextState(newState) {
   if (gameState === "RED" && newState === "GREEN") checkVerdict();
   gameState = newState;
   hasCaughtSomeone = false;
   accumulatedScores = {}; 
-  
-  if (newState === "GREEN") {
-      nextStateTime = millis() + random(2000, 5000);
-  } else {
-      // MODIF: TEMPS DE SCAN (10 à 15 secondes)
-      nextStateTime = millis() + random(10000, 15000); 
+  if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
+  else {
+      nextStateTime = millis() + random(4000, 8000);
       redLightStartTime = millis();
   }
 }
@@ -476,9 +465,7 @@ function setNextState(newState) {
 function checkVerdict() {
   let maxScore = 0;
   let loserIndex = -1;
-  let players = [];
-  try { players = analyzePlayersSafe(); } catch(e){}
-  
+  let players = analyzePlayersSafe();
   let threshold = (players.length <= 1) ? soloGaugeLimit : 50;
   
   for (let i in accumulatedScores) {
@@ -504,7 +491,7 @@ function checkGameState() {
   }
 }
 
-// --- CAPTURE & ENVOI (MIROIR APPLIQUÉ) ---
+// --- CAPTURE & ENVOI ---
 function takeSnapshot(box) {
   let pad = 50;
   let x = Math.floor(max(0, box.x - pad));
@@ -517,30 +504,7 @@ function takeSnapshot(box) {
   let pg;
   try {
     pg = createGraphics(w, h);
-    
-    // MODIF MIROIR SUR LA PHOTO:
-    // On doit dessiner la vidéo inversée dans le buffer pour que la photo soit WYSIWYG
-    pg.push();
-    // On inverse tout le buffer
-    pg.translate(w, 0);
-    pg.scale(-1, 1);
-    
-    // On dessine l'image. Attention aux coordonnées.
-    // Si on veut la portion de l'écran qui correspond à la boite "miroir", 
-    // on doit dessiner la vidéo entière décalée.
-    // Méthode simplifiée : on dessine la vidéo entière inversée, puis on get() la zone ?
-    // Non, `pg` a déjà la taille de la boite.
-    
-    // Le plus simple pour que la photo corresponde exactement à l'écran miroir :
-    // On dessine la partie correspondante de la vidéo brute.
-    // Comme la vidéo brute est "normale", mais affichée "miroir" à l'écran :
-    // La zone à x sur l'écran correspond à (width - x - w) sur la vidéo brute.
-    
-    let rawX = width - x - w; // Coordonnée X sur la vidéo brute
-    pg.image(video, 0, 0, w, h, rawX, y, w, h);
-    
-    pg.pop();
-
+    pg.image(video, 0, 0, w, h, x, y, w, h);
     let dataUrl = pg.canvas.toDataURL('image/jpeg', 0.5); 
     let randAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     let idNum = globalCaptureCount.toString().padStart(3, '0');
