@@ -40,14 +40,14 @@ let redLightStartTime = 0;
 let isPaused = false;
 let pauseStartTime = 0;
 
-// --- RÉGLAGES DE DÉTECTION GLOBAL ---
-// Seuil bas car on fait la moyenne de 500 points (beaucoup sont stables)
-let sensitivityThreshold = 0.005; 
-// Multiplicateur très haut car la moyenne de mouvement est petite
-let scoreMultiplier = 800; 
+// --- RÉGLAGES DE DÉTECTION (CORRIGÉS) ---
+// Seuil de bruit : Il faut bouger de 2% de la taille de son visage pour que ce soit compté
+let sensitivityThreshold = 0.02; 
+// Multiplicateur : On additionne les mouvements, donc on multiplie pour remplir la jauge
+let scoreMultiplier = 20; 
 let soloGaugeLimit = 500;
 
-// Mémoire des positions (Tableau de tableaux de points)
+// Mémoire des positions
 let prevGlobalPoints = {}; 
 let accumulatedScores = {};
 
@@ -210,7 +210,7 @@ function drawPrepScene() {
 function drawGameLogic() {
   checkGameState();
   
-  // 1. ANALYSE GLOBALE (Tous les points)
+  // 1. ANALYSE (Si visages détectés)
   let movementData = [];
   if (faces.length > 0) {
       movementData = analyzeGlobalMovements();
@@ -221,24 +221,29 @@ function drawGameLogic() {
   drawFaceBoxes(color(255, 255, 255, 180));
   drawSharedHeader("Scan en cours...");
   
-  // 3. UI
+  // 3. UI RÉSEAU
   textFont('Arial'); textSize(14); textAlign(RIGHT, TOP);
   if(networkStatus.includes("🟢")) fill(0, 200, 0);
   else fill(255, 0, 0);
   text(networkStatus, width - 20, 20);
 
-  // 4. FEU ROUGE
+  // 4. JEU 1-2-3 SOLEIL (RED LIGHT)
   if (gameState === "RED") {
      textAlign(CENTER, CENTER); fill(255, 0, 0); noStroke();
      textFont(easeFont); textSize(180); text("Scan", width / 2, height / 2);
      
      fill(255); textFont('Arial'); textSize(32); text("Détection de mouvement", width/2, height/2 + 100);
  
+     // Délai de grâce 1 seconde
      if (millis() - redLightStartTime < 1000) return; 
  
      for (let data of movementData) {
          let fIndex = data.faceIndex;
+         
+         // Initialisation du score si nouveau joueur
          if (!accumulatedScores[fIndex]) accumulatedScores[fIndex] = 0;
+         
+         // Accumulation : On ajoute le score de mouvement calculé cette frame
          accumulatedScores[fIndex] += data.score;
          
          textFont('Arial'); 
@@ -262,16 +267,16 @@ function drawDebugOverlay() {
   text("Visages : " + faces.length, 200, infoY);
 }
 
-// --- ANALYSE MASSIVE : VISAGE + CORPS ---
+// --- COEUR DE LA DÉTECTION (CORRIGÉ) ---
 function analyzeGlobalMovements() {
   let results = [];
   
   for (let i = 0; i < faces.length; i++) {
     let face = faces[i];
     let box = getFaceBox(face);
-    let movementScore = 0;
+    let currentFrameScore = 0; // Score de CETTE image
     
-    // 1. Trouver le corps associé au visage
+    // 1. Associer corps au visage
     let matchedPose = null;
     let faceCx = box.x + box.w/2;
     let faceCy = box.y + box.h/2;
@@ -287,60 +292,58 @@ function analyzeGlobalMovements() {
         }
     }
 
-    // 2. Collecter TOUS les points (Visage complet + Corps)
-    let allCurrentPoints = [];
+    // 2. Récupérer les points CLÉS (Visage + Corps)
+    // On ne prend pas TOUT pour éviter de noyer le mouvement, 
+    // on prend un échantillon représentatif.
+    let pointsOfInterest = [];
 
-    // A. Points du visage (468 points !)
-    // Pour ne pas faire ramer l'ordi, on prend 1 point sur 5, ce qui est suffisant
-    for(let k = 0; k < face.keypoints.length; k += 5) {
+    // A. Visage (Contour et traits internes) - On prend 1 point sur 10
+    for(let k = 0; k < face.keypoints.length; k += 10) {
         let p = face.keypoints[k];
-        allCurrentPoints.push({x: p.x, y: p.y});
+        pointsOfInterest.push({x: p.x, y: p.y});
     }
 
-    // B. Points du corps (Si trouvé)
+    // B. Corps (Membres)
     if(matchedPose) {
         for(let kp of matchedPose.keypoints) {
-            // On ne prend que les points fiables
             if(kp.confidence > 0.3) {
-                allCurrentPoints.push({x: kp.x, y: kp.y});
+                pointsOfInterest.push({x: kp.x, y: kp.y});
             }
         }
     }
 
-    // 3. Calcul du mouvement moyen par rapport à la frame d'avant
-    // Facteur d'échelle : Largeur du visage (pour normaliser distance/proximité)
+    // 3. Calcul du mouvement
+    // Échelle = Largeur Visage (pour que 1px de loin vaille autant que 10px de près)
     let scaleUnit = max(box.w, 10); 
     
     let prevPts = prevGlobalPoints[i];
-    if (prevPts && prevPts.length === allCurrentPoints.length) {
-        let totalNormalizedDist = 0;
-        let count = 0;
+    if (prevPts && prevPts.length === pointsOfInterest.length) {
+        
+        // CORRECTION MAJEURE : On additionne les mouvements au lieu de faire la moyenne globale
+        let sumSignificantMovements = 0;
 
-        for(let k = 0; k < allCurrentPoints.length; k++) {
-            let p1 = allCurrentPoints[k];
+        for(let k = 0; k < pointsOfInterest.length; k++) {
+            let p1 = pointsOfInterest[k];
             let p2 = prevPts[k];
             
             let d = dist(p1.x, p1.y, p2.x, p2.y);
-            // Normalisation : Déplacement relatif à la taille du visage
-            let normD = d / scaleUnit;
+            let normD = d / scaleUnit; // Mouvement normalisé
             
-            totalNormalizedDist += normD;
-            count++;
-        }
-
-        if(count > 0) {
-            let avgMvt = totalNormalizedDist / count;
-            // Si le mouvement moyen dépasse le seuil (bruit de fond webcam)
-            if(avgMvt > sensitivityThreshold) {
-                movementScore = avgMvt * scoreMultiplier;
+            // Si ce point précis a bougé plus que le seuil de bruit (0.02)
+            if(normD > sensitivityThreshold) {
+                // On ajoute ce mouvement au total
+                sumSignificantMovements += normD;
             }
         }
+
+        // Le score est la somme de tous les mouvements significatifs x Multiplicateur
+        currentFrameScore = sumSignificantMovements * scoreMultiplier;
     }
 
-    // Sauvegarde pour la prochaine frame
-    prevGlobalPoints[i] = allCurrentPoints;
+    // Sauvegarde
+    prevGlobalPoints[i] = pointsOfInterest;
     
-    results.push({ faceIndex: i, score: movementScore, box: box });
+    results.push({ faceIndex: i, score: currentFrameScore, box: box });
   }
   return results;
 }
@@ -408,7 +411,8 @@ function setNextState(newState) {
   if (gameState === "RED" && newState === "GREEN") checkVerdict();
   gameState = newState;
   hasCaughtSomeone = false;
-  accumulatedScores = {};
+  accumulatedScores = {}; // Reset des scores quand on repasse au vert
+  
   if (newState === "GREEN") nextStateTime = millis() + random(2000, 5000);
   else {
       nextStateTime = millis() + random(4000, 8000);
@@ -420,12 +424,14 @@ function checkVerdict() {
   let maxScore = 0;
   let loserIndex = -1;
   let threshold = (faces.length === 1) ? soloGaugeLimit : 50;
+  
   for (let i in accumulatedScores) {
       if (accumulatedScores[i] > maxScore) {
           maxScore = accumulatedScores[i];
           loserIndex = i;
       }
   }
+  
   if (maxScore > threshold && faces[loserIndex]) {
        takeSnapshot(getFaceBox(faces[loserIndex])); 
        hasCaughtSomeone = true;
