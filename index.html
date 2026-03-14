@@ -1,15 +1,117 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
-  <title>3D In Your Browser</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta charset="UTF-8" />
-  <link href="./styles/main.css" rel="stylesheet" type="text/css">
-</head>
+    <meta charset="UTF-8">
+    <title>Portfolio Sommaire</title>
+    <style>
+        :root {
+            --blue-bg: #0000FF; /* Le bleu vif de l'image */
+            --label-bg: #E0E0E0; /* Gris clair/blanc des étiquettes */
+            --text-color: #000000;
+        }
 
+        body {
+            background-color: var(--blue-bg);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 40px;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+
+        h1 {
+            color: var(--text-color);
+            background-color: var(--label-bg);
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+
+        .sommaire-container {
+            display: grid;
+            /* Crée 4 colonnes de largeur variable selon le contenu */
+            grid-template-columns: repeat(4, max-content);
+            gap: 8px 15px; /* Espace entre les lignes et les colonnes */
+            align-items: center;
+        }
+
+        /* Style des liens/étiquettes */
+        .project-row a {
+            text-decoration: none;
+            display: contents; /* Permet aux enfants d'être gérés par la grille parente */
+            color: inherit;
+        }
+
+        .item {
+            background-color: var(--label-bg);
+            color: var(--text-color);
+            padding: 2px 6px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        /* Effet de survol pour rendre le site interactif */
+        .project-row:hover .item {
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        .project-row:hover .item:first-child {
+            background-color: #000;
+            color: #fff;
+        }
+
+    </style>
+</head>
 <body>
- <p>hello</p>
+
+    <h1>SOMMAIRE</h1>
+
+    <div class="sommaire-container">
+        <div class="project-row">
+            <span class="item">NORANIM</span>
+            <span class="item">IDENTITÉ GRAPHIQUE</span>
+            <span class="item">PROJET DE GROUPE</span>
+            <span class="item">2025</span>
+        </div>
+
+        <div class="project-row">
+            <span class="item">ARTICLE</span>
+            <span class="item">MÉMOIRE & WEB</span>
+            <span class="item">PROJET DE FIN D'ÉTUDES</span>
+            <span class="item">2025</span>
+        </div>
+
+        <div class="project-row">
+            <span class="item">RISO</span>
+            <span class="item">RISOGRAPHIE</span>
+            <span class="item">WORKSHOP & PERSONNEL</span>
+            <span class="item">2024</span>
+        </div>
+
+        <div class="project-row">
+            <span class="item">ANMT</span>
+            <span class="item">IDENTITÉ NUMÉRIQUE</span>
+            <span class="item">PROJET DE COURS</span>
+            <span class="item">2026</span>
+        </div>
+
+        <div class="project-row">
+            <span class="item">VOLUME</span>
+            <span class="item">ÉDITION</span>
+            <span class="item">PROJET DE COURS</span>
+            <span class="item">2025</span>
+        </div>
+
+        <div class="project-row">
+            <span class="item">FAYOT</span>
+            <span class="item">JEU DE SOCIÉTÉ</span>
+            <span class="item">WORKSHOP DE GROUPE</span>
+            <span class="item">2024</span>
+        </div>
+        
+        </div>
+
 </body>
 </html>
-<!-- Cf. https://github.com/vivien000/trompeloeil for a write-up and the credits -->
